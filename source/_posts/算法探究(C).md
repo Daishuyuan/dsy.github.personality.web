@@ -1,0 +1,264 @@
+---
+title: 算法探究（C）
+date: 2018-02-28 13:45:09
+toc: true
+tags:
+    - 算法
+    - C++
+---
+![封面][2]
+***&emsp;&emsp;"You know nothing." --《Game of Thrones》***
+
+# N-皇后问题 #
+> &emsp;&emsp;这是源于国际象棋的一个问题。N-皇后问题要求在一个N × N格的棋盘上放置n个皇后，使得它们彼此不受攻击。按照国际象棋的规则，一个皇后可以攻击与之处于同一行或列或者一条斜线上的任何其他棋子。因此，N-皇后问题最后等价于要求在一个N × N格的棋盘上放置n个皇后，使得任何两个皇后不能被放在同一行或同一列或同一条对角线上。
+> &emsp;&emsp;本题输入格式只有一个，输入一个n（1<=n<=10)，以棋盘格式输出皇后（用字符Q表示）的位置。
+-----------------------算法分析------------------------------
+&emsp;&emsp;本题的思想采用回溯法求解，回溯法在理论上可以解决一个问题的一个解或者N个解，代价是需要大量试错（这也就是为什么要使用贪心算法和分支限界法的原因）。不过，在走投无路的情况下，可能回溯法是一个比较好的选择吧。
+&emsp;&emsp;回溯法求解N皇后问题即遍历每一行，在每一行上放置一个棋子（皇后），然后判断是否满足条件，若满足则输出结果，若不满足，则回溯到上一行向右移放置至下一个位置，再进行条件判断。直到所有位置均被放置完毕。
+
+<!-- more -->
+&emsp;&emsp;代码如下：
+```c
+#include <STDIO.H>
+#include <MATH.H>
+#define SIZE 100
+
+enum chess
+{
+    QUEEN=81,
+    BLANK=32
+};
+
+int X[SIZE];
+void printout(int length)  //输出棋盘
+{
+    printf("输出结果阵列:\n");
+    for(int i=1;i<=length;i++) {
+        for (int j=1;j<=length;j++)
+            if(j==X[i])
+                printf("%2c",QUEEN);
+            else
+                printf("%2c",BLANK);
+        printf("\n");
+    }
+    printf("\n");
+}
+
+bool isPlace(int k)   //是否可以摆放
+{
+    for(int i=1;i<k;i++)
+        if(X[i]==X[k]||abs(X[i]-X[k])==abs(i-k))
+            return false;
+    return true;
+}
+
+void findQueen(int n)   //回溯法搜寻可能结果
+{
+    X[1]=0;
+    int k=1;
+    while(k>0)
+    {
+        X[k]++;
+        while(X[k]<=n&&!isPlace(k))X[k]++;
+        if(X[k]<=n) {
+            if(k==n)
+                printout(n);
+            else {
+                k++;
+                X[k]=0;
+            }
+        } else
+            k--;
+    }
+}
+
+void main()
+{
+    int n;
+    printf("请输入棋盘的长宽N:");
+    scanf("%d",&n);
+    findQueen(n);
+}
+```
+
+程序运行效果如下：
+![N皇后问题运行效果][1]
+
+# 类找零问题 #
+> &emsp;&emsp;我们班最近也要开始填写素质拓展分了，我们的团支说由于我们学校的DB丢失备份了，导致所有学生参加的活动都不能确认了，但是总分是知道的。比如，知道XX同学的大二学年的素质拓展总分为10.4分，那么你可以在所有的活动中任意挑选活动，总之，只要加起来的总分等于素质拓展分总分就行。有许多活动有着相同的得分，以及相同分数的活动的数目都是有限的。
+> ----------------------问题的数学描述-------------------------- 
+&emsp;&emsp;已知有集合 <img src="http://latex.codecogs.com/gif.latex? Activity{<N_1,C_1>,<N_2,C_2>,<N_3,C_3>,...,<N_n,C_n>} " />;
+产生一个挑选集合<img src="http://latex.codecogs.com/gif.latex? Select{<N_1^{'},C_1^{'}>,<N_2^{'},C_2^{'}>,<N_3^{'},C_3^{'}>,...,<N_n^{'},C_n^{'}>}" />;
+使得<img src="http://latex.codecogs.com/gif.latex? Score=N_1^{'}*C_1+N_2^{'}*C_2^{'}+....+N_n^{'}*C_n $且满足$(N_1^{'} \le N_1,N_2^{'} \le N_2,...,N_n^{'} \le N_n)" />
+
+> ------------------------算法分析-----------------------------------
+&emsp;&emsp;本题可以采用贪心算法或者回溯法来求解，使用回溯法可以看到所有的解的结果。本题选择采用回溯法求解问题。第一个结果即为贪心算法求得的结果，若要得到贪心算法的最优结果，活动集合必须按照得分从大到小排列。
+
+> 回溯体的伪代码描述如下：
+BackTrace（解空间序号 t）
+&emsp;&emsp;if  t > 解空间长度
+&emsp;&emsp;&emsp;&emsp;if <img src="http://latex.codecogs.com/gif.latex? Score=N_1^{'}*C_1+N_2^{'}*C_2^{'}+....+N_n^{'}*C_n" />
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;输出解决方案；
+&emsp;&emsp;&emsp;&emsp;endif
+&emsp;&emsp;else
+&emsp;&emsp;&emsp;&emsp;for i:Nt to 1 step -1
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;解空间向量t:=i;
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;if <img src="http://latex.codecogs.com/gif.latex? Score \gt N_1^{'}*C_1+N_2^{'}*C_2+....+N_t^{'}*C_t" />
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;BackTrace(t+1);
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;endif 
+&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;解空间向量t:=0; 
+&emsp;&emsp;&emsp;&emsp;endfor
+&emsp;&emsp;BackTrace(t+1);
+&emsp;&emsp;endif
+end
+
+代码如下：
+**Selection.h**
+```c
+#ifndef _SELECTION_H
+#define _SELECTION_H
+
+#define UINT unsigned int
+#define EQUAL 0.0001
+#define SIZE 100
+#include <iostream.h>
+#include <fstream.h>
+#include <assert.h>
+#include <stdlib.h>
+#include <math.h>
+
+typedef struct
+{
+    int number;
+	double score;
+}Relation;
+
+class Selection
+{
+private:
+    UINT *x;
+    Relation *r;
+	int Length;
+	double Score;
+	void Calculate(int t);
+	bool OK(int t);
+public:
+    Selection(char *FName);
+	void Excute(double Your_Score);
+	void Close();
+};
+
+#endif
+```
+
+**Selection.cpp**
+```c
+#include "Selection.h"
+ 
+Selection::Selection(char *FName)
+{
+     int i=0;
+     r=new Relation[SIZE];
+ 
+     //Read Data from Text
+     ifstream inFile;
+     inFile.open(FName,ios::in|ios::nocreate);
+     assert(inFile!=NULL);
+     while(!inFile.eof())
+     {
+         inFile>>r[i].number;
+         inFile>>r[i].score;
+         i++;
+         assert(i<=SIZE);
+     }
+     inFile.close();
+ 
+     //Init the Parameters
+     Length=i;
+};
+ 
+bool Selection::OK(int t)
+{
+    double sum=0;
+    for(int k=0;k<=t;k++)
+        sum+=x[k]*r[k].score;
+    if(sum>Score)
+        return false;
+    return true;
+};
+ 
+void Selection::Calculate(int t)
+{
+    if(t>Length)
+    {
+        double Sum=0;
+        for(int k=0;k<Length;k++)
+            Sum+=x[k] * r[k].score;
+ 
+        if(fabs(Score-Sum)<=EQUAL)
+        {
+            cout<<"Result:"<<endl;
+            for(int k=0;k<Length;k++)
+                if(x[k]!=0)cout<<x[k]<<":"<<r[k].score<<endl;
+            cout<<endl;
+        }
+    }
+    else
+    {
+        for(int j=r[t].number;j>=1;j--)
+        {
+             x[t]=j;
+             if(OK(t))Calculate(t+1);
+             x[t]=0;
+        }
+        Calculate(t+1);
+    }
+};
+ 
+void Selection::Excute(double Your_Score)
+{
+    Score=Your_Score;
+    x=new UINT[Length];
+    for(int i=0;i<Length;i++)x[i]=0;
+    Calculate(0);
+    delete []x;
+};
+ 
+void Selection::Close()
+{
+    delete []r;
+};
+```
+**MainActivity.cpp**
+```c
+#include "Selection.h"
+ 
+void main()
+{
+     double score;
+     cout<<"Please input a score:"<<endl;
+     cin>>score;
+     Selection *select=new Selection("in.txt");
+     select->Excute(score);
+     select->Close();
+}
+```
+**in.txt**
+
+活动数目 | 分数
+:--:|:--:
+5|1.2
+4|1
+20|0.6
+7|0.2
+
+> ------------------------程序或算法的不足----------------------------
+&emsp;&emsp;问题：不能按照答案得到相应的活动名称序列。
+&emsp;&emsp;解决办法:可以再增加一个数组读入所有活动序列，然后根据上述程序的运行结果随机匹配活动名称。由于时间的关系，就不再深入了。当然也还有其他可以改良的地方。
+
+程序运行效果如下：
+![程序运行效果图][3]
+
+  [1]: /assets/blogImg/blog-cases-2018-3-1.jpg
+  [2]: /assets/blogImg/blog2018-3-1.jpg
+  [3]: /assets/blogImg/blog-cases-2018-3-1.png
