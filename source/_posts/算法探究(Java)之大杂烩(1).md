@@ -1,5 +1,5 @@
 ---
-title: 算法探究（Java）
+title: 算法探究(Java)之大杂烩(1)
 date: 2018-02-28 19:08:04
 toc: true
 tags:

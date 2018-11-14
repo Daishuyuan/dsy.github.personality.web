@@ -5,6 +5,7 @@ toc: true
 tags:
     - 技术
     - Dubbo
+    - SOA
 ---
 ![Dubbo封面][2]
 

@@ -1,5 +1,5 @@
 ---
-title: 算法探究（Javascript）
+title: 算法探究(Javascript)之大杂烩(1)
 date: 2018-03-01 09:33:09
 toc: true
 tags:

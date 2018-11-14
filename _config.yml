@@ -3,14 +3,14 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: 戴舒原的博客 | 记录与成长
+title: 遗世独立的理想乡 | 记录与成长
 subtitle: 反者道之动，弱者道之用。
-description: 擅长多门编程语言，乐于研究算法和哲学，喜欢深入思考人类智能与人工智能的问题
-author: 戴舒原
+description: 擅长多门编程语言，乐于研究算法和自然哲学，思考人类智能与人工智能领域。
+author: Avalon
 language: zh-CN
-timezone:
+timezone: 
 email: 2250649759@qq.com
-keywords: 前端,后端,算法,设计师,Java,Js,Python,C++,戴舒原的博客,博客,戴舒原
+keywords: 前端,后端,算法,软件设计师,Java,Js,Python,C++,博客
 
 # URL
 ## If your site is put in a subdirectory, set url as 'http://yoursite.com/child' and root as '/child/'
