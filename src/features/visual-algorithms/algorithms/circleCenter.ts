@@ -1,9 +1,12 @@
 import { parsePoints } from "./validation";
+import type { AlgorithmPoint, CircleCenterVisualization } from "../data/types";
 
 export interface CircleCenterResult {
-  points: Array<{ x: number; y: number }>;
-  center: { x: number; y: number } | null;
+  points: AlgorithmPoint[];
+  center: AlgorithmPoint | null;
   radius: number | null;
+  determinant: number;
+  visualization: CircleCenterVisualization;
 }
 
 export function calculateCircleCenter(pointsText: string): CircleCenterResult {
@@ -19,8 +22,25 @@ export function calculateCircleCenter(pointsText: string): CircleCenterResult {
       b.x * (c.y - a.y) +
       c.x * (a.y - b.y));
 
+  const bisectors = [
+    buildBisector("AB", a, b),
+    buildBisector("BC", b, c)
+  ];
+
   if (Math.abs(d) < 1e-9) {
-    return { points, center: null, radius: null };
+    return {
+      points,
+      center: null,
+      radius: null,
+      determinant: d,
+      visualization: {
+        kind: "circle-center",
+        inputPoints: points,
+        center: null,
+        radius: null,
+        bisectors
+      }
+    };
   }
 
   const ux =
@@ -37,5 +57,34 @@ export function calculateCircleCenter(pointsText: string): CircleCenterResult {
   const center = { x: ux, y: uy };
   const radius = Math.hypot(center.x - a.x, center.y - a.y);
 
-  return { points, center, radius };
+  return {
+    points,
+    center,
+    radius,
+    determinant: d,
+    visualization: {
+      kind: "circle-center",
+      inputPoints: points,
+      center,
+      radius,
+      bisectors
+    }
+  };
+}
+
+function buildBisector(label: string, left: AlgorithmPoint, right: AlgorithmPoint) {
+  const dx = right.x - left.x;
+  const dy = right.y - left.y;
+  const length = Math.max(1, Math.hypot(dx, dy));
+  return {
+    label,
+    midpoint: {
+      x: (left.x + right.x) / 2,
+      y: (left.y + right.y) / 2
+    },
+    direction: {
+      x: -dy / length,
+      y: dx / length
+    }
+  };
 }

@@ -4,6 +4,7 @@ export interface LakeCountingResult {
   count: number;
   grid: string[][];
   visited: boolean[][];
+  visitOrder: Array<{ x: number; y: number; component: number }>;
 }
 
 export function countLakes(gridText: string, eightDir: boolean): LakeCountingResult {
@@ -11,6 +12,7 @@ export function countLakes(gridText: string, eightDir: boolean): LakeCountingRes
   const rows = grid.length;
   const cols = grid[0].length;
   const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
+  const visitOrder: Array<{ x: number; y: number; component: number }> = [];
   const directions = eightDir
     ? [
         [-1, -1],
@@ -33,9 +35,10 @@ export function countLakes(gridText: string, eightDir: boolean): LakeCountingRes
     return grid[row][col].toUpperCase() === "W";
   }
 
-  function flood(startRow: number, startCol: number) {
+  function flood(startRow: number, startCol: number, component: number) {
     const stack = [[startRow, startCol]];
     visited[startRow][startCol] = true;
+    visitOrder.push({ x: startCol, y: startRow, component });
 
     while (stack.length > 0) {
       const current = stack.pop();
@@ -55,6 +58,7 @@ export function countLakes(gridText: string, eightDir: boolean): LakeCountingRes
           isWater(nextRow, nextCol)
         ) {
           visited[nextRow][nextCol] = true;
+          visitOrder.push({ x: nextCol, y: nextRow, component });
           stack.push([nextRow, nextCol]);
         }
       }
@@ -66,10 +70,10 @@ export function countLakes(gridText: string, eightDir: boolean): LakeCountingRes
     for (let col = 0; col < cols; col += 1) {
       if (!visited[row][col] && isWater(row, col)) {
         count += 1;
-        flood(row, col);
+        flood(row, col, count);
       }
     }
   }
 
-  return { count, grid, visited };
+  return { count, grid, visited, visitOrder };
 }

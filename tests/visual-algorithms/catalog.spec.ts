@@ -5,7 +5,7 @@ test("catalog lists the approved visual algorithms", async ({ page }) => {
   await page.goto("/visual-algorithms/");
   await expect(page.getByRole("heading", { name: "可视化算法" })).toBeVisible();
 
-  for (const category of ["强化学习", "图形与物理", "数据结构与搜索", "字符串与枚举"]) {
+  for (const category of ["智能体与模拟", "图形与物理", "数据结构与搜索", "字符串与枚举"]) {
     await expect(page.getByRole("heading", { name: category })).toBeVisible();
   }
 

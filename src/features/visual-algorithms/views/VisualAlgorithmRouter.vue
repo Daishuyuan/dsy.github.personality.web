@@ -13,7 +13,6 @@ import EscapePathfindingView from "./EscapePathfindingView.vue";
 import IpAddressSplitView from "./IpAddressSplitView.vue";
 import LakeCountingView from "./LakeCountingView.vue";
 import PerfectWorldView from "./PerfectWorldView.vue";
-import ThreeJsPlaygroundView from "./ThreeJsPlaygroundView.vue";
 
 const props = defineProps<{
   slug: string;
@@ -24,7 +23,6 @@ const componentMap = {
   basketball: BasketballView,
   "cell-war": CellWarView,
   "perfect-world": PerfectWorldView,
-  "three-js-playground": ThreeJsPlaygroundView,
   "circle-center": CircleCenterView,
   crane: CraneView,
   "lake-counting": LakeCountingView,

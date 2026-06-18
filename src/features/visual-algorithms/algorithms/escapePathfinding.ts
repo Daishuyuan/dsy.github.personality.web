@@ -4,6 +4,14 @@ export interface EscapeResult {
   grid: string[][];
   path: Array<{ x: number; y: number }>;
   reachable: boolean;
+  visitedOrder: Array<{ x: number; y: number }>;
+  trace: EscapeTraceStep[];
+}
+
+export interface EscapeTraceStep {
+  current: { x: number; y: number };
+  frontier: Array<{ x: number; y: number }>;
+  visited: Array<{ x: number; y: number }>;
 }
 
 export function findEscapePath(gridText: string): EscapeResult {
@@ -29,6 +37,8 @@ export function findEscapePath(gridText: string): EscapeResult {
   const key = (point: { x: number; y: number }) => `${point.x},${point.y}`;
   const queue = [start];
   const previous = new Map<string, string | null>([[key(start), null]]);
+  const visitedOrder = [start];
+  const trace: EscapeTraceStep[] = [];
   const directions = [
     { x: 1, y: 0 },
     { x: -1, y: 0 },
@@ -42,6 +52,7 @@ export function findEscapePath(gridText: string): EscapeResult {
       continue;
     }
     if (current.x === end.x && current.y === end.y) {
+      trace.push({ current, frontier: queue.slice(), visited: visitedOrder.slice() });
       break;
     }
     for (const direction of directions) {
@@ -58,13 +69,15 @@ export function findEscapePath(gridText: string): EscapeResult {
       const nextKey = key(next);
       if (!previous.has(nextKey)) {
         previous.set(nextKey, key(current));
+        visitedOrder.push(next);
         queue.push(next);
       }
     }
+    trace.push({ current, frontier: queue.slice(), visited: visitedOrder.slice() });
   }
 
   if (!previous.has(key(end))) {
-    return { grid, path: [], reachable: false };
+    return { grid, path: [], reachable: false, visitedOrder, trace };
   }
 
   const path: Array<{ x: number; y: number }> = [];
@@ -76,5 +89,5 @@ export function findEscapePath(gridText: string): EscapeResult {
   }
   path.reverse();
 
-  return { grid, path, reachable: true };
+  return { grid, path, reachable: true, visitedOrder, trace };
 }

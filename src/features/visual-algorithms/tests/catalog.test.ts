@@ -3,7 +3,7 @@ import { algorithms, categories } from "../data/catalog";
 
 describe("visual algorithm catalog", () => {
   it("contains exactly the approved public menu algorithms", () => {
-    expect(algorithms).toHaveLength(10);
+    expect(algorithms).toHaveLength(9);
     expect(algorithms.map((algorithm) => algorithm.slug).sort()).toEqual([
       "basketball",
       "cell-war",
@@ -13,8 +13,7 @@ describe("visual algorithm catalog", () => {
       "escape-pathfinding",
       "ip-address-split",
       "lake-counting",
-      "perfect-world",
-      "three-js-playground"
+      "perfect-world"
     ]);
   });
 

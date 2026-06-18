@@ -31,6 +31,19 @@ export function parseNumberList(value: string): number[] {
   });
 }
 
+export function parseIpAddress(value: string): string[] {
+  const compact = value.replace(/\./g, "").trim();
+  if (!/^\d{4,12}$/.test(compact)) {
+    throw new Error("请输入 4 到 12 位数字，可用点分形式辅助阅读。");
+  }
+
+  if (/[^0-9.]/.test(value)) {
+    throw new Error("IP 划分输入只能包含数字和点。");
+  }
+
+  return [compact];
+}
+
 export function parseMatrix(value: string): string[][] {
   const rows = value
     .trim()
@@ -99,9 +112,23 @@ export function validateControls(
         normalized[control.id] = numeric;
       } else if (control.kind === "boolean") {
         normalized[control.id] = Boolean(value);
-      } else if (control.kind === "segment-list") {
-        parseNumberList(String(value));
+      } else if (control.kind === "segment-list" || control.kind === "slider-list") {
+        const numbers = parseNumberList(String(value));
+        if (
+          control.constraints?.min !== undefined &&
+          numbers.some((numeric) => numeric < Number(control.constraints?.min))
+        ) {
+          return { ok: false, message: control.errorMessage };
+        }
+        if (
+          control.constraints?.max !== undefined &&
+          numbers.some((numeric) => numeric > Number(control.constraints?.max))
+        ) {
+          return { ok: false, message: control.errorMessage };
+        }
         normalized[control.id] = String(value);
+      } else if (control.kind === "ip-address") {
+        normalized[control.id] = parseIpAddress(String(value))[0];
       } else if (control.kind === "matrix") {
         parseMatrix(String(value));
         normalized[control.id] = String(value);

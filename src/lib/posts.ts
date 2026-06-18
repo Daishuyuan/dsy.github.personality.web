@@ -1,4 +1,5 @@
 import type { CollectionEntry } from "astro:content";
+import { getArticleIdForContentId } from "../features/engagement/articleIdentity";
 
 export type BlogPost = CollectionEntry<"blog">;
 
@@ -23,6 +24,11 @@ export function getPostSlug(post: BlogPost) {
 
 export function getPostPath(post: BlogPost) {
   return post.data.legacyPath;
+}
+
+export function getPostArticleId(post: BlogPost) {
+  const contentId = post.id.replace(/\.md$/, "");
+  return getArticleIdForContentId(contentId);
 }
 
 export function getAllTags(posts: BlogPost[]) {

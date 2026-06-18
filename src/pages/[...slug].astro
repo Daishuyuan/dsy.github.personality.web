@@ -1,7 +1,8 @@
 ---
 import { getCollection, render } from "astro:content";
+import EngagementPanel from "../features/engagement/components/EngagementPanel.vue";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { formatDate, getPostPath } from "../lib/posts";
+import { formatDate, getPostArticleId, getPostPath } from "../lib/posts";
 
 export async function getStaticPaths() {
   const posts = await getCollection("blog");
@@ -13,6 +14,7 @@ export async function getStaticPaths() {
 
 const { post } = Astro.props;
 const { Content } = await render(post);
+const articleId = getPostArticleId(post);
 ---
 
 <BaseLayout title={`${post.data.title} | Daishuyuan`}>
@@ -29,5 +31,6 @@ const { Content } = await render(post);
     <div class="article-content">
       <Content />
     </div>
+    <EngagementPanel client:only="vue" articleId={articleId} title={post.data.title} />
   </article>
 </BaseLayout>

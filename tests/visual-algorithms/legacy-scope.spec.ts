@@ -13,5 +13,5 @@ test("catalog excludes unapproved legacy experiments and filenames", async ({ pa
   ]) {
     await expect(body).not.toContainText(excluded);
   }
-  await expect(page.locator(".va-algorithm-link")).toHaveCount(10);
+  await expect(page.locator(".va-algorithm-link")).toHaveCount(9);
 });

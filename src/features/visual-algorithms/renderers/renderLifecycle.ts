@@ -2,6 +2,10 @@ export interface RendererHandle {
   cleanup: () => void;
 }
 
+export interface RendererOptions {
+  frameIndex?: number;
+}
+
 export function resizeCanvasToDisplaySize(canvas: HTMLCanvasElement) {
   const rect = canvas.getBoundingClientRect();
   const width = Math.max(320, Math.floor(rect.width || canvas.clientWidth || 640));
@@ -38,4 +42,48 @@ export function createAnimationLoop(render: () => void): RendererHandle {
       window.cancelAnimationFrame(frame);
     }
   };
+}
+
+export function createTimedAnimation(
+  durationMs: number,
+  render: (progress: number, elapsedMs: number) => void
+): RendererHandle {
+  let frame = 0;
+  let stopped = false;
+  const startedAt = window.performance.now();
+
+  const tick = (now: number) => {
+    if (stopped) {
+      return;
+    }
+
+    const elapsed = now - startedAt;
+    const progress = Math.min(1, elapsed / durationMs);
+    render(progress, elapsed);
+
+    if (progress < 1) {
+      frame = window.requestAnimationFrame(tick);
+    }
+  };
+
+  render(0, 0);
+  frame = window.requestAnimationFrame(tick);
+
+  return {
+    cleanup: () => {
+      stopped = true;
+      window.cancelAnimationFrame(frame);
+    }
+  };
+}
+
+export function getFrameAnimationDuration(
+  frameCount: number | undefined,
+  options: { minMs?: number; maxMs?: number; perFrameMs?: number } = {}
+) {
+  const minMs = options.minMs ?? 1800;
+  const maxMs = options.maxMs ?? 6500;
+  const perFrameMs = options.perFrameMs ?? 110;
+  const safeFrameCount = Math.max(1, frameCount ?? 1);
+  return Math.min(maxMs, Math.max(minMs, safeFrameCount * perFrameMs));
 }

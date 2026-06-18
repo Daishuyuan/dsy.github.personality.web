@@ -1,6 +1,8 @@
 .DS_Store
 Thumbs.db
 db.json
+.local-engagement-store.json
+.tmp-engagement-store-*.json
 *.log
 *.tmp
 *.swp
