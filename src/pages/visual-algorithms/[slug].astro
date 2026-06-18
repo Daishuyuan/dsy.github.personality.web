@@ -1,0 +1,40 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import VisualAlgorithmRouter from "../../features/visual-algorithms/views/VisualAlgorithmRouter.vue";
+import {
+  getAlgorithmBySlug,
+  getAlgorithmSlugs
+} from "../../features/visual-algorithms";
+
+export function getStaticPaths() {
+  return getAlgorithmSlugs().map((slug) => ({
+    params: { slug }
+  }));
+}
+
+const { slug } = Astro.params;
+const algorithm = getAlgorithmBySlug(String(slug));
+
+if (!algorithm) {
+  return Astro.redirect("/visual-algorithms/");
+}
+---
+
+<BaseLayout
+  title={`${algorithm.title} - 可视化算法 - Daishuyuan`}
+  description={algorithm.summary}
+>
+  <nav class="va-breadcrumb" aria-label="Breadcrumb">
+    <a href="/">文章</a>
+    <span>/</span>
+    <a href="/visual-algorithms/">可视化算法</a>
+    <span>/</span>
+    <span>{algorithm.title}</span>
+  </nav>
+  <section class="page-heading va-detail-heading">
+    <p class="eyebrow">Interactive Workbench</p>
+    <h1>{algorithm.title}</h1>
+    <p>{algorithm.summary}</p>
+  </section>
+  <VisualAlgorithmRouter slug={algorithm.slug} client:only="vue" />
+</BaseLayout>

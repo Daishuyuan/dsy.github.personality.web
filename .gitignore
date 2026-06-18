@@ -2,10 +2,19 @@
 Thumbs.db
 db.json
 *.log
+*.tmp
+*.swp
+.env*
 
 node_modules/
 .astro/
 dist/
+build/
+coverage/
+test-results/
+playwright-report/
+.vscode/
+.idea/
 .vercel/
 
 .deploy*/

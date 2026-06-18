@@ -8,15 +8,28 @@
     "build": "astro build",
     "preview": "astro preview",
     "check:site": "node scripts/check-generated-site.mjs",
-    "verify": "npm run build && npm run check:site"
+    "check:content": "node scripts/check-blog-content-unchanged.mjs",
+    "test:algorithms": "vitest run",
+    "test:e2e": "playwright test",
+    "verify": "npm run build && npm run check:site && npm run check:content && npm run test:algorithms"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.6.0",
-    "astro": "^6.0.0"
+    "@astrojs/vue": "^6.0.1",
+    "astro": "^6.0.0",
+    "element-plus": "^2.14.2",
+    "matter-js": "^0.20.0",
+    "three": "^0.184.0",
+    "vue": "^3.5.38"
   },
   "overrides": {
     "esbuild": "^0.28.1",
     "extend": "^3.0.2"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@playwright/test": "^1.61.0",
+    "@types/matter-js": "^0.20.2",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
 }
