@@ -1,0 +1,23 @@
+---
+import { getCollection } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { getAllTags } from "../../lib/posts";
+
+const posts = await getCollection("blog");
+const tags = getAllTags(posts);
+---
+
+<BaseLayout title="标签 | Daishuyuan">
+  <section class="page-heading">
+    <h1>标签</h1>
+  </section>
+
+  <nav class="tag-index" aria-label="All tags">
+    {tags.map((tag) => (
+      <a href={`/tags/${encodeURIComponent(tag)}/`}>
+        <span>{tag}</span>
+        <strong>{posts.filter((post) => post.data.tags.includes(tag)).length}</strong>
+      </a>
+    ))}
+  </nav>
+</BaseLayout>

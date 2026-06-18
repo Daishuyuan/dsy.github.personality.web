@@ -1,0 +1,42 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "Daishuyuan",
+  description = "Personal technical notes on software engineering, algorithms, architecture, and machine learning."
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    <link rel="icon" href="/assets/img/face.jpg" />
+    <link rel="stylesheet" href="/styles/global.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Daishuyuan home">
+        <img src="/assets/img/face.jpg" alt="" />
+        <span>Daishuyuan</span>
+      </a>
+      <nav aria-label="Primary">
+        <a href="/">文章</a>
+        <a href="/archives/">归档</a>
+        <a href="/tags/">标签</a>
+      </nav>
+    </header>
+    <main>
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <span>Daishuyuan</span>
+    </footer>
+  </body>
+</html>

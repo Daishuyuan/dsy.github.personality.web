@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Missing source image placeholder</title>
+  <desc id="desc">The original blog-SOA-beanFactory.png file was referenced by the migrated article but was not present in the source repository.</desc>
+  <rect width="1200" height="720" fill="#f8fafc"/>
+  <rect x="70" y="70" width="1060" height="580" rx="8" fill="#ffffff" stroke="#d9e2ec" stroke-width="3"/>
+  <text x="600" y="298" fill="#116d6e" font-family="Arial, sans-serif" font-size="44" font-weight="700" text-anchor="middle">blog-SOA-beanFactory.png</text>
+  <text x="600" y="364" fill="#344054" font-family="Arial, sans-serif" font-size="28" text-anchor="middle">Referenced by the original article</text>
+  <text x="600" y="412" fill="#667085" font-family="Arial, sans-serif" font-size="22" text-anchor="middle">Source image was not present in the repository history checked during migration.</text>
+</svg>
