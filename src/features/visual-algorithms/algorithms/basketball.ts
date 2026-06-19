@@ -5,9 +5,15 @@ const launchPoint = { x: 42, y: 360 };
 export const basketballGravity = 9.8;
 export const basketballSampleRate = 12;
 const pixelScale = 12;
+const ballRadius = 10;
+const floorTop = bounds.height - 42;
+const floorRestitution = 0.62;
+const backboardRestitution = 0.74;
+const tangentialDamping = 0.96;
 const hoop = {
   rimCenter: { x: 438, y: 166 },
   rimRadius: 32,
+  ballRadius,
   backboardX: 488,
   backboardTop: 96,
   backboardBottom: 198,
@@ -19,30 +25,58 @@ const hoop = {
   }
 };
 
+export interface BasketballSample {
+  point: AlgorithmPoint;
+  time: number;
+  velocityX: number;
+  velocityY: number;
+  collision: "backboard" | "floor" | null;
+}
+
 export function runBasketball(speed: number, angle: number) {
   const radians = (angle * Math.PI) / 180;
-  const velocityX = speed * Math.cos(radians);
-  const velocityY = speed * Math.sin(radians);
+  let velocityX = speed * Math.cos(radians) * pixelScale;
+  let velocityY = -speed * Math.sin(radians) * pixelScale;
   const points: AlgorithmPoint[] = [];
+  const samples: BasketballSample[] = [];
+  const collisions: BasketballVisualization["collisions"] = [];
   let hitPoint: AlgorithmPoint | null = null;
   let hitSampleIndex: number | null = null;
   let hitTime: number | null = null;
   let peakY = launchPoint.y;
+  let point = { ...launchPoint };
 
-  for (let step = 0; step <= 96; step += 1) {
+  points.push(point);
+  samples.push({
+    point,
+    time: 0,
+    velocityX: velocityX / pixelScale,
+    velocityY: -velocityY / pixelScale,
+    collision: null
+  });
+
+  for (let step = 1; step <= 96; step += 1) {
     const time = step / basketballSampleRate;
-    const worldX = velocityX * time;
-    const worldY = velocityY * time - 0.5 * basketballGravity * time ** 2;
-    const point = {
-      x: launchPoint.x + worldX * pixelScale,
-      y: launchPoint.y - worldY * pixelScale
+    const previous = point;
+    velocityY += basketballGravity * pixelScale / basketballSampleRate;
+    point = {
+      x: previous.x + velocityX / basketballSampleRate,
+      y: previous.y + velocityY / basketballSampleRate
     };
-    if (point.y > bounds.height - 28 && step > 3) {
-      break;
+    const collision = resolveCollision(previous, point, velocityX, velocityY);
+    point = collision.point;
+    velocityX = collision.velocityX;
+    velocityY = collision.velocityY;
+
+    if (collision.kind) {
+      collisions.push({
+        point,
+        kind: collision.kind,
+        sampleIndex: points.length
+      });
     }
 
-    const previous = points[points.length - 1];
-    if (!hitPoint && previous) {
+    if (!hitPoint) {
       const crossing = findRimCrossing(previous, point);
       if (crossing) {
         hitPoint = crossing.point;
@@ -53,28 +87,95 @@ export function runBasketball(speed: number, angle: number) {
 
     peakY = Math.min(peakY, point.y);
     points.push(point);
+    samples.push({
+      point,
+      time,
+      velocityX: velocityX / pixelScale,
+      velocityY: -velocityY / pixelScale,
+      collision: collision.kind
+    });
+
+    if (point.y >= floorTop - ballRadius && Math.abs(velocityY) < 22 && step > 12) {
+      break;
+    }
+    if (point.x > bounds.width + ballRadius || point.x < -ballRadius) {
+      break;
+    }
   }
 
   const hit = Boolean(hitPoint);
+  const backboardCollisions = collisions.filter((collision) => collision.kind === "backboard").length;
 
   return {
     points,
+    samples,
     metrics: {
       speed,
       angle,
       hit: hit ? "命中窗口" : "未命中",
-      flightTime: ((points.length - 1) / basketballSampleRate).toFixed(2),
+      flightTime: samples[samples.length - 1]?.time.toFixed(2) ?? "0.00",
       peakHeight: ((launchPoint.y - peakY) / pixelScale).toFixed(2),
       hitTime: hitTime === null ? "N/A" : hitTime.toFixed(2),
+      backboardCollisions,
+      collisions: collisions.length,
       sampleRate: basketballSampleRate
     },
     visualization: {
       kind: "basketball",
       bounds,
       hoop,
+      collisions,
       hitPoint,
       hitSampleIndex
     } satisfies BasketballVisualization
+  };
+}
+
+function resolveCollision(
+  previous: AlgorithmPoint,
+  next: AlgorithmPoint,
+  velocityX: number,
+  velocityY: number
+) {
+  let point = next;
+  let nextVelocityX = velocityX;
+  let nextVelocityY = velocityY;
+  let kind: "backboard" | "floor" | null = null;
+
+  const crossedBackboard =
+    velocityX > 0 &&
+    previous.x + ballRadius <= hoop.backboardX &&
+    next.x + ballRadius >= hoop.backboardX;
+
+  if (crossedBackboard && Math.abs(next.x - previous.x) > 1e-9) {
+    const ratio = (hoop.backboardX - ballRadius - previous.x) / (next.x - previous.x);
+    const collisionY = previous.y + (next.y - previous.y) * ratio;
+    if (collisionY >= hoop.backboardTop - ballRadius && collisionY <= hoop.backboardBottom + ballRadius) {
+      point = {
+        x: hoop.backboardX - ballRadius,
+        y: collisionY
+      };
+      nextVelocityX = -Math.abs(velocityX) * backboardRestitution;
+      nextVelocityY = velocityY * tangentialDamping;
+      kind = "backboard";
+    }
+  }
+
+  if (point.y + ballRadius >= floorTop) {
+    point = {
+      ...point,
+      y: floorTop - ballRadius
+    };
+    nextVelocityY = -Math.abs(nextVelocityY) * floorRestitution;
+    nextVelocityX *= 0.86;
+    kind = kind ?? "floor";
+  }
+
+  return {
+    point,
+    velocityX: nextVelocityX,
+    velocityY: nextVelocityY,
+    kind
   };
 }
 

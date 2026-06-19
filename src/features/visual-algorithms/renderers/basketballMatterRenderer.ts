@@ -82,7 +82,11 @@ function drawBasketball(
 
   const ball = activePoints[activePoints.length - 1];
   if (ball) {
-    drawBall(context, project(ball), Math.max(8, 11 * scale));
+    drawBall(context, project(ball), Math.max(8, (visualization?.hoop.ballRadius ?? 10) * scale));
+  }
+
+  if (visualization?.collisions.length) {
+    drawCollisions(context, visualization, activePoints.length - 1, project, scale);
   }
 
   const revealHit =
@@ -162,6 +166,36 @@ function drawHoop(
   context.beginPath();
   context.ellipse(rimCenter.x, rimCenter.y, hoop.rimRadius * scale, 10 * scale, 0, 0, Math.PI * 2);
   context.stroke();
+}
+
+function drawCollisions(
+  context: CanvasRenderingContext2D,
+  visualization: BasketballVisualization,
+  activeIndex: number,
+  project: (point: AlgorithmPoint) => AlgorithmPoint,
+  scale: number
+) {
+  for (const collision of visualization.collisions) {
+    if (collision.sampleIndex > activeIndex) {
+      continue;
+    }
+    const point = project(collision.point);
+    context.save();
+    context.strokeStyle = collision.kind === "backboard" ? "#ef4444" : "#f59e0b";
+    context.fillStyle = collision.kind === "backboard" ? "rgba(239, 68, 68, 0.16)" : "rgba(245, 158, 11, 0.16)";
+    context.lineWidth = Math.max(2, 2 * scale);
+    context.beginPath();
+    context.arc(point.x, point.y, Math.max(8, 12 * scale), 0, Math.PI * 2);
+    context.fill();
+    context.stroke();
+    context.beginPath();
+    context.moveTo(point.x - 7 * scale, point.y - 7 * scale);
+    context.lineTo(point.x + 7 * scale, point.y + 7 * scale);
+    context.moveTo(point.x + 7 * scale, point.y - 7 * scale);
+    context.lineTo(point.x - 7 * scale, point.y + 7 * scale);
+    context.stroke();
+    context.restore();
+  }
 }
 
 function drawBall(context: CanvasRenderingContext2D, point: AlgorithmPoint, radius: number) {

@@ -1,5 +1,5 @@
 import type { AlgorithmFrame, AlgorithmPoint, AlgorithmResult } from "../data/types";
-import { basketballGravity, basketballSampleRate, runBasketball } from "./basketball";
+import { basketballSampleRate, runBasketball, type BasketballSample } from "./basketball";
 import { calculateCircleCenter } from "./circleCenter";
 import { runCellWar } from "./cellWar";
 import { calculateCrane } from "./crane";
@@ -167,13 +167,18 @@ export function runAlgorithm(
     const result = runBasketball(Number(values.speed), Number(values.angle));
     return {
       title: "投篮物理模拟",
-      summary: String(result.metrics.hit),
-      lines: [`初速度：${values.speed}`, `角度：${values.angle}`, String(result.metrics.hit)],
+      summary: `${result.metrics.hit}，篮板碰撞 ${result.metrics.backboardCollisions} 次。`,
+      lines: [
+        `初速度：${values.speed}`,
+        `角度：${values.angle}`,
+        String(result.metrics.hit),
+        `篮板碰撞：${result.metrics.backboardCollisions}`,
+        `总碰撞：${result.metrics.collisions}`
+      ],
       points: result.points,
       frames: buildBasketballFrames(
         result.points,
-        Number(values.speed),
-        Number(values.angle),
+        result.samples,
         String(result.metrics.hit),
         String(result.metrics.hitTime),
         typeof result.visualization.hitSampleIndex === "number" ? result.visualization.hitSampleIndex : null
@@ -381,32 +386,29 @@ function buildCircleFrames(
 
 function buildBasketballFrames(
   points: AlgorithmPoint[],
-  speed: number,
-  angle: number,
+  samples: BasketballSample[],
   hit: string,
   hitTime: string,
   hitSampleIndex: number | null
 ): AlgorithmFrame[] {
-  const radians = (angle * Math.PI) / 180;
-  const velocityX = speed * Math.cos(radians);
-  const initialVelocityY = speed * Math.sin(radians);
-
   return points.map((_, index) => {
-    const time = index / basketballSampleRate;
-    const velocityY = initialVelocityY - basketballGravity * time;
+    const sample = samples[index] ?? samples[samples.length - 1];
     const point = points[index];
     const hitReached = hitSampleIndex !== null && index >= hitSampleIndex;
     const hitStatus = hitReached || index === points.length - 1 ? hit : "检测中";
+    const collisionText =
+      sample?.collision === "backboard" ? "篮板反弹" : sample?.collision === "floor" ? "地面反弹" : "无";
     return {
       points: points.slice(0, index + 1),
       current: point,
-      phase: "抛物线采样",
-      explanation: `t=${time.toFixed(2)}s，水平速度保持不变，竖直速度受重力递减。`,
+      phase: sample?.collision ? "碰撞响应" : "物理积分",
+      explanation: `t=${(sample?.time ?? index / basketballSampleRate).toFixed(2)}s，积分位置并检测篮板/地面碰撞。`,
       message: `shot sample ${index + 1}`,
       metrics: {
-        time: time.toFixed(2),
-        velocityX: velocityX.toFixed(2),
-        velocityY: velocityY.toFixed(2),
+        time: (sample?.time ?? index / basketballSampleRate).toFixed(2),
+        velocityX: (sample?.velocityX ?? 0).toFixed(2),
+        velocityY: (sample?.velocityY ?? 0).toFixed(2),
+        collision: collisionText,
         hit: hitStatus,
         hitTime: hitReached ? hitTime : "N/A"
       }
