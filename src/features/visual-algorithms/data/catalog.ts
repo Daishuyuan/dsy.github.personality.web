@@ -54,10 +54,10 @@ export const algorithms: VisualAlgorithm[] = [
     resultMode: "visual-and-text",
     rendererKind: "physics-2d",
     executionMode: "auto",
-    defaultState: { speed: 18, angle: 52 },
+    defaultState: { speed: 23, angle: 56 },
     controls: [
-      { id: "speed", label: "初速度", kind: "number", defaultValue: 18, constraints: { min: 5, max: 40, step: 1 }, errorMessage: "初速度必须在 5 到 40 之间。" },
-      { id: "angle", label: "角度", kind: "number", defaultValue: 52, constraints: { min: 10, max: 80, step: 1 }, errorMessage: "角度必须在 10 到 80 之间。" }
+      { id: "speed", label: "初速度", kind: "number", defaultValue: 23, constraints: { min: 5, max: 40, step: 1 }, errorMessage: "初速度必须在 5 到 40 之间。" },
+      { id: "angle", label: "角度", kind: "number", defaultValue: 56, constraints: { min: 10, max: 80, step: 1 }, errorMessage: "角度必须在 10 到 80 之间。" }
     ]
   },
   {

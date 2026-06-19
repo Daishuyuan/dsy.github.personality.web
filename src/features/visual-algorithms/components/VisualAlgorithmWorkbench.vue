@@ -55,7 +55,7 @@ const executionMode = props.algorithm.executionMode ?? "manual";
 const updateDelayMs = props.algorithm.updateDelayMs ?? 120;
 const frameIndex = ref(0);
 const isPlaying = ref(false);
-const playbackSpeed = ref(1);
+const playbackSpeed = ref(2);
 
 const state = reactive<VisualizationState>({
   status: "idle",

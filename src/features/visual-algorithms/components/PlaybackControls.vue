@@ -57,10 +57,12 @@
         aria-label="播放速度"
         @update:model-value="(value) => emitSpeed(Number(value))"
       >
-        <ElOption label="0.5x" :value="0.5" />
-        <ElOption label="1x" :value="1" />
-        <ElOption label="1.5x" :value="1.5" />
-        <ElOption label="2x" :value="2" />
+        <ElOption
+          v-for="option in playbackSpeedOptions"
+          :key="option"
+          :label="`${option}x`"
+          :value="option"
+        />
       </ElSelect>
     </label>
   </section>
@@ -85,6 +87,7 @@ const emit = defineEmits<{
 }>();
 
 const maxFrameIndex = computed(() => Math.max(0, props.frameCount - 1));
+const playbackSpeedOptions = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4];
 
 function clampFrameIndex(value: number) {
   return Math.min(maxFrameIndex.value, Math.max(0, Math.round(value)));

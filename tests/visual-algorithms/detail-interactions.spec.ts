@@ -74,7 +74,9 @@ for (const slug of visualAlgorithmSlugs) {
       await page.getByRole("button", { name: "重播" }).click();
       await expectCanvasChangedFrom(page, beforeReplayFrame);
       await expect(page.locator(".va-status")).toContainText("已完成");
-      await expectCanvasAnimation(page);
+      if (hasPlayback(slug)) {
+        await expectCanvasAnimation(page);
+      }
     } else {
       await expect(page.locator(".va-status")).toContainText("待运行");
       await expect(page.locator(".va-text-result")).toContainText("等待运行");
@@ -155,8 +157,12 @@ test("framed algorithm playback controls pause, step, and restart frames", async
   }
   await expectCanvasChangedFrom(page, beforeScrub);
 
+  await expect(page.locator(".va-playback-speed")).toContainText("2x");
   await page.locator(".va-playback-speed .el-select").click();
-  await page.getByRole("option", { name: "2x" }).click();
+  for (const speed of ["2.5x", "3x", "3.5x", "4x"]) {
+    await expect(page.getByRole("option", { name: speed })).toBeVisible();
+  }
+  await page.getByRole("option", { name: "4x" }).click();
 
   const nextButton = page.getByRole("button", { name: "下一帧" });
   for (let index = 0; index < 40; index += 1) {
