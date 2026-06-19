@@ -153,6 +153,7 @@ export interface BasketballVisualization {
   hoop: {
     rimCenter: AlgorithmPoint;
     rimRadius: number;
+    rimTubeRadius: number;
     ballRadius: number;
     backboardX: number;
     backboardTop: number;
@@ -161,7 +162,7 @@ export interface BasketballVisualization {
   };
   collisions: Array<{
     point: AlgorithmPoint;
-    kind: "backboard" | "floor";
+    kind: "backboard" | "floor" | "rim";
     sampleIndex: number;
   }>;
   hitPoint: AlgorithmPoint | null;

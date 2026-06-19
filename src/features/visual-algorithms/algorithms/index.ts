@@ -167,12 +167,13 @@ export function runAlgorithm(
     const result = runBasketball(Number(values.speed), Number(values.angle));
     return {
       title: "投篮物理模拟",
-      summary: `${result.metrics.hit}，篮板碰撞 ${result.metrics.backboardCollisions} 次。`,
+      summary: `${result.metrics.hit}，篮板碰撞 ${result.metrics.backboardCollisions} 次，篮框碰撞 ${result.metrics.rimCollisions} 次。`,
       lines: [
         `初速度：${values.speed}`,
         `角度：${values.angle}`,
         String(result.metrics.hit),
         `篮板碰撞：${result.metrics.backboardCollisions}`,
+        `篮框碰撞：${result.metrics.rimCollisions}`,
         `总碰撞：${result.metrics.collisions}`
       ],
       points: result.points,
@@ -397,7 +398,13 @@ function buildBasketballFrames(
     const hitReached = hitSampleIndex !== null && index >= hitSampleIndex;
     const hitStatus = hitReached || index === points.length - 1 ? hit : "检测中";
     const collisionText =
-      sample?.collision === "backboard" ? "篮板反弹" : sample?.collision === "floor" ? "地面反弹" : "无";
+      sample?.collision === "backboard"
+        ? "篮板反弹"
+        : sample?.collision === "rim"
+          ? "篮框反弹"
+          : sample?.collision === "floor"
+            ? "地面反弹"
+            : "无";
     return {
       points: points.slice(0, index + 1),
       current: point,

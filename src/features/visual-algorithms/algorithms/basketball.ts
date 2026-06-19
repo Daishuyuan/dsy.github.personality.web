@@ -9,10 +9,12 @@ const ballRadius = 10;
 const floorTop = bounds.height - 42;
 const floorRestitution = 0.62;
 const backboardRestitution = 0.74;
+const rimRestitution = 0.68;
 const tangentialDamping = 0.96;
 const hoop = {
   rimCenter: { x: 438, y: 166 },
   rimRadius: 32,
+  rimTubeRadius: 5,
   ballRadius,
   backboardX: 488,
   backboardTop: 96,
@@ -30,7 +32,7 @@ export interface BasketballSample {
   time: number;
   velocityX: number;
   velocityY: number;
-  collision: "backboard" | "floor" | null;
+  collision: "backboard" | "floor" | "rim" | null;
 }
 
 export function runBasketball(speed: number, angle: number) {
@@ -105,6 +107,7 @@ export function runBasketball(speed: number, angle: number) {
 
   const hit = Boolean(hitPoint);
   const backboardCollisions = collisions.filter((collision) => collision.kind === "backboard").length;
+  const rimCollisions = collisions.filter((collision) => collision.kind === "rim").length;
 
   return {
     points,
@@ -117,6 +120,7 @@ export function runBasketball(speed: number, angle: number) {
       peakHeight: ((launchPoint.y - peakY) / pixelScale).toFixed(2),
       hitTime: hitTime === null ? "N/A" : hitTime.toFixed(2),
       backboardCollisions,
+      rimCollisions,
       collisions: collisions.length,
       sampleRate: basketballSampleRate
     },
@@ -140,9 +144,18 @@ function resolveCollision(
   let point = next;
   let nextVelocityX = velocityX;
   let nextVelocityY = velocityY;
-  let kind: "backboard" | "floor" | null = null;
+  let kind: "backboard" | "floor" | "rim" | null = null;
+
+  const rimCollision = findRimCollision(previous, next, velocityX, velocityY);
+  if (rimCollision) {
+    point = rimCollision.point;
+    nextVelocityX = rimCollision.velocityX;
+    nextVelocityY = rimCollision.velocityY;
+    kind = "rim";
+  }
 
   const crossedBackboard =
+    kind === null &&
     velocityX > 0 &&
     previous.x + ballRadius <= hoop.backboardX &&
     next.x + ballRadius >= hoop.backboardX;
@@ -179,6 +192,92 @@ function resolveCollision(
   };
 }
 
+function findRimCollision(
+  previous: AlgorithmPoint,
+  next: AlgorithmPoint,
+  velocityX: number,
+  velocityY: number
+) {
+  const collisionRadius = ballRadius + hoop.rimTubeRadius;
+  const rimPoints = [
+    { x: hoop.rimCenter.x - hoop.rimRadius, y: hoop.rimCenter.y },
+    { x: hoop.rimCenter.x + hoop.rimRadius, y: hoop.rimCenter.y }
+  ];
+
+  let best:
+    | {
+        point: AlgorithmPoint;
+        center: AlgorithmPoint;
+        ratio: number;
+        distance: number;
+      }
+    | null = null;
+
+  for (const center of rimPoints) {
+    const candidate = closestPointOnSegment(previous, next, center);
+    if (candidate.ratio <= 0 || candidate.ratio > 1 || candidate.distance > collisionRadius) {
+      continue;
+    }
+    const normal = normalizeVector({
+      x: candidate.point.x - center.x,
+      y: candidate.point.y - center.y
+    });
+    if (velocityX * normal.x + velocityY * normal.y >= 0) {
+      continue;
+    }
+    if (!best || candidate.ratio < best.ratio) {
+      best = { ...candidate, center };
+    }
+  }
+
+  if (!best) {
+    return null;
+  }
+
+  const normal = normalizeVector({
+    x: best.point.x - best.center.x,
+    y: best.point.y - best.center.y
+  });
+  const velocityAlongNormal = velocityX * normal.x + velocityY * normal.y;
+  const reflectedVelocity = {
+    x: velocityX - (1 + rimRestitution) * velocityAlongNormal * normal.x,
+    y: velocityY - (1 + rimRestitution) * velocityAlongNormal * normal.y
+  };
+  return {
+    point: {
+      x: best.center.x + normal.x * collisionRadius,
+      y: best.center.y + normal.y * collisionRadius
+    },
+    velocityX: reflectedVelocity.x * tangentialDamping,
+    velocityY: reflectedVelocity.y * tangentialDamping
+  };
+}
+
+function closestPointOnSegment(from: AlgorithmPoint, to: AlgorithmPoint, target: AlgorithmPoint) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const lengthSquared = dx * dx + dy * dy;
+  const ratio =
+    lengthSquared === 0 ? 0 : Math.max(0, Math.min(1, ((target.x - from.x) * dx + (target.y - from.y) * dy) / lengthSquared));
+  const point = {
+    x: from.x + dx * ratio,
+    y: from.y + dy * ratio
+  };
+  return {
+    point,
+    ratio,
+    distance: Math.hypot(point.x - target.x, point.y - target.y)
+  };
+}
+
+function normalizeVector(vector: AlgorithmPoint) {
+  const length = Math.max(1e-9, Math.hypot(vector.x, vector.y));
+  return {
+    x: vector.x / length,
+    y: vector.y / length
+  };
+}
+
 function findRimCrossing(from: AlgorithmPoint, to: AlgorithmPoint) {
   const rimY = hoop.rimCenter.y;
   const movingDown = to.y > from.y;
@@ -192,7 +291,9 @@ function findRimCrossing(from: AlgorithmPoint, to: AlgorithmPoint) {
     x: from.x + (to.x - from.x) * ratio,
     y: rimY
   };
-  if (point.x >= hoop.hitWindow.left && point.x <= hoop.hitWindow.right) {
+  const openLeft = hoop.rimCenter.x - hoop.rimRadius + ballRadius + hoop.rimTubeRadius;
+  const openRight = hoop.rimCenter.x + hoop.rimRadius - ballRadius - hoop.rimTubeRadius;
+  if (point.x >= openLeft && point.x <= openRight) {
     return { point, ratio };
   }
   return null;

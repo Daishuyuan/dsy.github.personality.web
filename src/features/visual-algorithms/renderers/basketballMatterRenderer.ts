@@ -181,8 +181,14 @@ function drawCollisions(
     }
     const point = project(collision.point);
     context.save();
-    context.strokeStyle = collision.kind === "backboard" ? "#ef4444" : "#f59e0b";
-    context.fillStyle = collision.kind === "backboard" ? "rgba(239, 68, 68, 0.16)" : "rgba(245, 158, 11, 0.16)";
+    const rimCollision = collision.kind === "rim";
+    const backboardCollision = collision.kind === "backboard";
+    context.strokeStyle = rimCollision ? "#f97316" : backboardCollision ? "#ef4444" : "#f59e0b";
+    context.fillStyle = rimCollision
+      ? "rgba(249, 115, 22, 0.18)"
+      : backboardCollision
+        ? "rgba(239, 68, 68, 0.16)"
+        : "rgba(245, 158, 11, 0.16)";
     context.lineWidth = Math.max(2, 2 * scale);
     context.beginPath();
     context.arc(point.x, point.y, Math.max(8, 12 * scale), 0, Math.PI * 2);
