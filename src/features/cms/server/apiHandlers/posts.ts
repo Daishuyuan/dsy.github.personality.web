@@ -8,7 +8,7 @@ import { enforceRateLimit, getClientKey, withIdempotency } from "../requestSafet
 export default async function handler(req: ApiRequestLike, res: ApiResponseLike) {
   res.setHeader("Cache-Control", "no-store");
   try {
-    const actor = requireOwner(req);
+    const actor = await requireOwner(req);
     enforceRateLimit(`${getClientKey(req)}:cms-posts`, 120, 60_000);
 
     if (req.method === "GET") {

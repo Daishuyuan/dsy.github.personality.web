@@ -5,6 +5,9 @@ export interface CmsEnv {
   mongodbUri?: string;
   mongodbDb: string;
   adminToken?: string;
+  publicSupabaseUrl?: string;
+  publicSupabaseAnonKey?: string;
+  ownerEmails: string[];
   supabaseUrl?: string;
   supabaseServiceRoleKey?: string;
   supabaseStorageBucket: string;
@@ -17,12 +20,26 @@ export function getCmsEnv(): CmsEnv {
     mongodbUri: readEnv("MONGODB_URI"),
     mongodbDb: readEnv("MONGODB_DB") ?? "dsy_blog",
     adminToken: readEnv("ADMIN_TOKEN"),
+    publicSupabaseUrl: readEnv("PUBLIC_SUPABASE_URL") ?? readEnv("SUPABASE_URL"),
+    publicSupabaseAnonKey: readEnv("PUBLIC_SUPABASE_ANON_KEY"),
+    ownerEmails: parseOwnerEmails(readEnv("CMS_OWNER_EMAILS")),
     supabaseUrl: readEnv("SUPABASE_URL"),
     supabaseServiceRoleKey: readEnv("SUPABASE_SERVICE_ROLE_KEY"),
     supabaseStorageBucket: readEnv("SUPABASE_STORAGE_BUCKET") ?? "blog-images",
     mongodbTimeoutMs: parsePositiveInteger(readEnv("MONGODB_TIMEOUT_MS"), 5000),
     allowMemoryRepository: readEnv("CMS_ALLOW_MEMORY_REPOSITORY") === "true" || process.env.NODE_ENV === "test"
   };
+}
+
+function parseOwnerEmails(value: string | undefined): string[] {
+  return Array.from(
+    new Set(
+      String(value ?? "")
+        .split(",")
+        .map((email) => email.trim().toLowerCase())
+        .filter(Boolean)
+    )
+  );
 }
 
 export function requireAdminToken(): string {

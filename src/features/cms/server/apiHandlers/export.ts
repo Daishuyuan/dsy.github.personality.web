@@ -5,7 +5,7 @@ import { methodNotAllowed, sendError, type ApiRequestLike, type ApiResponseLike 
 export default async function handler(req: ApiRequestLike, res: ApiResponseLike) {
   res.setHeader("Cache-Control", "no-store");
   try {
-    const actor = requireOwner(req);
+    const actor = await requireOwner(req);
     if (req.method !== "GET") {
       methodNotAllowed(res);
       return;

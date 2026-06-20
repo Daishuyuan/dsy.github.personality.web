@@ -1,9 +1,22 @@
 <template>
   <main class="cms-admin">
     <section v-if="!ready" class="cms-panel auth-panel">
-      <h2>Owner Token</h2>
-      <ElInput v-model="tokenInput" type="password" show-password placeholder="ADMIN_TOKEN" @keyup.enter="saveToken" />
-      <ElButton type="primary" @click="saveToken">进入</ElButton>
+      <div class="auth-copy">
+        <span>SECURE CMS</span>
+        <h2>Owner Login</h2>
+        <p>{{ authHint }}</p>
+      </div>
+      <div class="auth-actions">
+        <ElButton v-if="authMode === 'oauth'" type="primary" :loading="authLoading" @click="signInGoogleAccount">
+          使用 Google 登录
+        </ElButton>
+        <template v-else-if="authMode === 'fallback'">
+          <ElInput v-model="tokenInput" type="password" show-password placeholder="本地 ADMIN_TOKEN" @keyup.enter="saveFallbackToken" />
+          <ElButton type="primary" @click="saveFallbackToken">进入</ElButton>
+        </template>
+        <ElAlert v-else title="未配置 Google 登录。" type="error" :closable="false" />
+        <p v-if="authMessage" class="auth-message">{{ authMessage }}</p>
+      </div>
     </section>
 
     <template v-else>
@@ -11,6 +24,10 @@
         <div class="toolbar-actions">
           <ElButton type="primary" :icon="Plus" @click="createNew">新文章</ElButton>
           <ElButton :icon="Refresh" :loading="loading" @click="loadArticles">刷新</ElButton>
+        </div>
+        <div class="toolbar-session">
+          <span v-if="authEmail">{{ authEmail }}</span>
+          <ElButton plain @click="logout">退出</ElButton>
         </div>
       </section>
 
@@ -56,15 +73,16 @@
 import "element-plus/dist/index.css";
 import { computed, onMounted, ref } from "vue";
 import { Plus, Refresh } from "@element-plus/icons-vue";
-import { ElButton, ElInput, ElMessage } from "element-plus";
+import { ElAlert, ElButton, ElInput, ElMessage } from "element-plus";
 import type { Article } from "../types";
 import {
   AdminRequestError,
   adminFetch,
-  clearStoredToken,
   emptyArticle,
   fileToUploadPayload,
-  getStoredToken,
+  getAdminAuthState,
+  signInWithGoogle,
+  signOutAdmin,
   storeToken
 } from "./adminClient";
 import ArticleEditor from "./ArticleEditor.vue";
@@ -72,6 +90,10 @@ import { withDerivedPublishFields } from "./publishFields";
 import VersionHistory from "./VersionHistory.vue";
 
 const ready = ref(false);
+const authLoading = ref(false);
+const authMode = ref<"oauth" | "fallback" | "unconfigured">("unconfigured");
+const authEmail = ref("");
+const authMessage = ref("");
 const tokenInput = ref("");
 const loading = ref(false);
 const busy = ref(false);
@@ -98,18 +120,61 @@ const tagOptions = computed(() => {
   }
   return Array.from(tags).sort((a, b) => a.localeCompare(b, "zh-CN"));
 });
-onMounted(() => {
-  tokenInput.value = getStoredToken();
-  ready.value = Boolean(tokenInput.value);
-  if (ready.value) {
-    void loadArticles();
+const authHint = computed(() => {
+  if (authMode.value === "oauth") {
+    return "使用授权的 Google 账号进入文章管理，未加入白名单的账号无法保存或发布。";
   }
+  if (authMode.value === "fallback") {
+    return "本地开发模式可使用 ADMIN_TOKEN，线上应配置 Google 登录。";
+  }
+  return "后台尚未配置可用的登录方式。";
+});
+onMounted(() => {
+  void refreshAuth(true);
 });
 
-function saveToken() {
+async function refreshAuth(loadWhenReady = false) {
+  authLoading.value = true;
+  try {
+    const state = await getAdminAuthState();
+    ready.value = state.ready;
+    authMode.value = state.mode;
+    authEmail.value = state.email ?? "";
+    authMessage.value = state.message ?? "";
+    if (state.ready && loadWhenReady) {
+      await loadArticles();
+    }
+  } catch (error) {
+    ready.value = false;
+    authMode.value = "unconfigured";
+    authMessage.value = error instanceof Error ? error.message : "登录状态读取失败。";
+  } finally {
+    authLoading.value = false;
+  }
+}
+
+function saveFallbackToken() {
+  if (!tokenInput.value.trim()) {
+    ElMessage.error("请输入本地 ADMIN_TOKEN。");
+    return;
+  }
   storeToken(tokenInput.value.trim());
-  ready.value = true;
-  void loadArticles();
+  void refreshAuth(true);
+}
+
+async function signInGoogleAccount() {
+  authLoading.value = true;
+  try {
+    await signInWithGoogle();
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "Google 登录失败。");
+    authLoading.value = false;
+  }
+}
+
+async function logout() {
+  await resetAuthState();
+  ElMessage.success("已退出");
 }
 
 function createNew() {
@@ -226,17 +291,26 @@ function statusLabel(value: Article["status"]) {
 }
 
 function handleAdminError(error: unknown, fallback: string) {
-  if (error instanceof AdminRequestError && (error.status === 401 || error.code === "AUTH_REQUIRED")) {
-    clearStoredToken();
-    tokenInput.value = "";
-    ready.value = false;
-    articles.value = [];
-    current.value = emptyArticle();
-    ElMessage.error("管理权限已失效，请重新输入 Owner Token。");
+  if (
+    error instanceof AdminRequestError &&
+    (error.status === 401 || error.status === 403 || error.code === "AUTH_REQUIRED" || error.code === "FORBIDDEN")
+  ) {
+    void resetAuthState();
+    ElMessage.error(error.message || "登录失败，请重新进入。");
     return;
   }
 
   ElMessage.error(error instanceof Error ? error.message : fallback);
+}
+
+async function resetAuthState() {
+  await signOutAdmin();
+  tokenInput.value = "";
+  ready.value = false;
+  authEmail.value = "";
+  articles.value = [];
+  selectedArticleId.value = "";
+  current.value = emptyArticle();
 }
 </script>
 
@@ -263,6 +337,49 @@ function handleAdminError(error: unknown, fallback: string) {
   padding: 1rem;
 }
 
+.auth-panel {
+  justify-content: space-between;
+  gap: 1.5rem;
+  min-height: 168px;
+}
+
+.auth-copy {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.auth-copy span {
+  color: var(--cinnabar);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.auth-copy h2 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(1.7rem, 4vw, 2.6rem);
+}
+
+.auth-copy p,
+.auth-message {
+  margin: 0;
+  color: var(--muted);
+}
+
+.auth-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  min-width: min(460px, 100%);
+}
+
+.auth-message {
+  font-size: 0.86rem;
+}
+
 .cms-toolbar,
 .toolbar-actions {
   display: flex;
@@ -271,8 +388,16 @@ function handleAdminError(error: unknown, fallback: string) {
 }
 
 .cms-toolbar {
-  justify-content: flex-start;
+  justify-content: space-between;
   flex-wrap: wrap;
+}
+
+.toolbar-session {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .cms-layout {
