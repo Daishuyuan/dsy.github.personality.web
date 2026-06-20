@@ -6,6 +6,8 @@ import {
   getAlgorithmSlugs
 } from "../../features/visual-algorithms";
 
+export const prerender = true;
+
 export function getStaticPaths() {
   return getAlgorithmSlugs().map((slug) => ({
     params: { slug }
@@ -32,7 +34,7 @@ if (!algorithm) {
     <span>{algorithm.title}</span>
   </nav>
   <section class="page-heading va-detail-heading">
-    <p class="eyebrow">Interactive Workbench</p>
+    <p class="eyebrow">互动演算 · Interactive Workbench</p>
     <h1>{algorithm.title}</h1>
     <p>{algorithm.summary}</p>
   </section>

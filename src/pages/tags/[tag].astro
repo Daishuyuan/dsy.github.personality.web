@@ -1,30 +1,45 @@
 ---
-import { getCollection } from "astro:content";
+import ContentSourceError from "../../features/content/components/ContentSourceError.astro";
+import { getPublicArticles, getPublicContentErrorMessage } from "../../features/content/source";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { formatDate, getAllTags, getPostPath, sortPosts } from "../../lib/posts";
+import type { BlogPost } from "../../lib/posts";
 
-export async function getStaticPaths() {
-  const posts = await getCollection("blog");
-  return getAllTags(posts).map((tag) => ({
-    params: { tag },
-    props: { tag, posts: sortPosts(posts.filter((post) => post.data.tags.includes(tag))) }
-  }));
+const tag = decodeURIComponent(String(Astro.params.tag ?? ""));
+let contentError = "";
+let allPosts: BlogPost[] = [];
+let posts: BlogPost[] = [];
+try {
+  allPosts = await getPublicArticles();
+  if (getAllTags(allPosts).includes(tag)) {
+    posts = sortPosts(allPosts.filter((post) => post.tags.includes(tag)));
+  }
+} catch (error) {
+  contentError = getPublicContentErrorMessage(error);
 }
 
-const { tag, posts } = Astro.props;
+if (!contentError && !getAllTags(allPosts).includes(tag)) {
+  return new Response("Not found", { status: 404 });
+}
 ---
 
 <BaseLayout title={`${tag} | Daishuyuan`}>
   <section class="page-heading">
+    <p class="eyebrow">Tagged Notes</p>
     <h1>{tag}</h1>
+    <p>与该主题相关的中文技术札记 / Notes grouped under this topic.</p>
   </section>
 
-  <div class="post-list compact">
-    {posts.map((post) => (
-      <article class="post-card">
-        <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
-        <h2><a href={getPostPath(post)}>{post.data.title}</a></h2>
-      </article>
-    ))}
-  </div>
+  {contentError ? (
+    <ContentSourceError message={contentError} />
+  ) : (
+    <div class="post-list compact">
+      {posts.map((post) => (
+        <article class="post-card">
+          <time datetime={post.publishedDate}>{formatDate(post.publishedDate)}</time>
+          <h2><a href={getPostPath(post)}>{post.title}</a></h2>
+        </article>
+      ))}
+    </div>
+  )}
 </BaseLayout>

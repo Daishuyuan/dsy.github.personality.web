@@ -1,0 +1,43 @@
+---
+interface Props {
+  message: string;
+}
+
+const { message } = Astro.props;
+---
+
+<section class="content-source-error" role="alert">
+  <p class="error-kicker">Database</p>
+  <h2>文章数据库不可用</h2>
+  <p>{message}</p>
+</section>
+
+<style>
+  .content-source-error {
+    border: 1px solid #f0b8b8;
+    border-radius: 8px;
+    background: #fff5f5;
+    color: #1f2a2e;
+    padding: 1.25rem 1.5rem;
+    margin: 2rem 0;
+  }
+
+  .content-source-error .error-kicker {
+    margin: 0 0 0.4rem;
+    color: #a83232;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .content-source-error h2 {
+    margin: 0 0 0.6rem;
+    font-size: clamp(1.35rem, 2vw, 1.8rem);
+  }
+
+  .content-source-error p:last-child {
+    margin: 0;
+    color: #5f6d72;
+  }
+</style>

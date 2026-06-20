@@ -9,7 +9,7 @@ const serverCommand =
   `npm run dev -- --host ${defaultHost} --port ${defaultPort}`;
 
 export default defineConfig({
-  testDir: "tests/visual-algorithms",
+  testDir: "tests",
   timeout: 30_000,
   expect: {
     timeout: 5_000

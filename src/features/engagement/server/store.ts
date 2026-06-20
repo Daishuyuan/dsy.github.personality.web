@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { MongoClient } from "mongodb";
+import { getCmsEnv } from "../../cms/server/env.ts";
 import { articleIdsByLegacySlug, getArticleIdForLegacySlug } from "../articleIdentity";
 import type { EngagementSnapshot, PublicComment } from "../types";
 import type { ValidatedCommentDraft } from "../validation";
@@ -42,7 +43,7 @@ export async function getEngagementSnapshot(articleId: string, visitorId: string
   const visitorHash = hashValue(visitorId);
   const mongo = await getMongo();
   if (mongo) {
-    const database = mongo.db(process.env.MONGODB_DB ?? "dsy_blog");
+    const database = mongo.db(getCmsEnv().mongodbDb);
     const comments = database.collection<StoredComment>("comments");
     const likes = database.collection<{ articleId: string; visitorHash: string; createdAt: string }>("likes");
     await ensureIndexes(comments, likes);
@@ -82,7 +83,7 @@ export async function toggleLike(articleId: string, visitorId: string) {
 
   if (mongo) {
     enforceRateLimit(getRuntimeMemoryStore(), `${visitorHash}:like`, 30, 60_000);
-    const database = mongo.db(process.env.MONGODB_DB ?? "dsy_blog");
+    const database = mongo.db(getCmsEnv().mongodbDb);
     const comments = database.collection<StoredComment>("comments");
     const likes = database.collection<{ articleId: string; visitorHash: string; createdAt: string }>("likes");
     await ensureIndexes(comments, likes);
@@ -125,7 +126,7 @@ export async function createComment(input: ValidatedCommentDraft) {
   const mongo = await getMongo();
   if (mongo) {
     enforceRateLimit(getRuntimeMemoryStore(), `${visitorHash}:comment`, 6, 60_000);
-    const database = mongo.db(process.env.MONGODB_DB ?? "dsy_blog");
+    const database = mongo.db(getCmsEnv().mongodbDb);
     const comments = database.collection<StoredComment>("comments");
     const likes = database.collection<{ articleId: string; visitorHash: string; createdAt: string }>("likes");
     await ensureIndexes(comments, likes);
@@ -142,13 +143,18 @@ export async function createComment(input: ValidatedCommentDraft) {
 }
 
 async function getMongo() {
-  const uri = process.env.MONGODB_URI;
+  const env = getCmsEnv();
+  const uri = env.mongodbUri;
   if (!uri) {
     return null;
   }
 
   if (!globalStore.__engagementMongo) {
-    globalStore.__engagementMongo = new MongoClient(uri).connect();
+    globalStore.__engagementMongo = new MongoClient(uri, {
+      serverSelectionTimeoutMS: env.mongodbTimeoutMs,
+      connectTimeoutMS: env.mongodbTimeoutMs,
+      socketTimeoutMS: env.mongodbTimeoutMs
+    }).connect();
   }
   return globalStore.__engagementMongo;
 }

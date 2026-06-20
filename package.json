@@ -10,18 +10,34 @@
     "check:site": "node scripts/check-generated-site.mjs",
     "check:content": "node scripts/check-blog-content-unchanged.mjs",
     "cleanup:engagement-legacy": "node scripts/cleanup-engagement-legacy-data.mjs --apply",
+    "cms:import-local": "node scripts/cms-import-local.mjs",
+    "cms:verify-migration": "node scripts/cms-verify-migration.mjs",
+    "cms:export": "node scripts/cms-export.mjs",
     "test:algorithms": "vitest run",
+    "test:cms": "vitest run src/features/cms src/features/content",
     "test:e2e": "playwright test",
-    "test:e2e:preview": "npm run build && PLAYWRIGHT_BASE_URL=http://127.0.0.1:4322 PLAYWRIGHT_SERVER_URL=http://127.0.0.1:4322 PLAYWRIGHT_SERVER_COMMAND=\"npm run preview -- --host 127.0.0.1 --port 4322\" playwright test",
-    "verify": "npm run build && npm run check:site && npm run check:content && npm run test:algorithms"
+    "test:e2e:preview": "npm run build && PLAYWRIGHT_BASE_URL=http://127.0.0.1:4322 PLAYWRIGHT_SERVER_URL=http://127.0.0.1:4322 PLAYWRIGHT_SERVER_COMMAND=\"npm run dev -- --host 127.0.0.1 --port 4322\" playwright test",
+    "verify:cms": "npm run test:cms && npm run cms:import-local -- --dry-run",
+    "verify": "npm run build && npm run check:site && npm run check:content && npm run test:algorithms && npm run verify:cms"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.6.0",
+    "@astrojs/vercel": "^10.0.8",
     "@astrojs/vue": "^6.0.1",
+    "@supabase/supabase-js": "^2.108.2",
     "astro": "^6.0.0",
     "element-plus": "^2.14.2",
+    "gray-matter": "^4.0.3",
     "mongodb": "^7.3.0",
-    "vue": "^3.5.38"
+    "rehype-raw": "^7.0.0",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "unified": "^11.0.5",
+    "vue": "^3.5.38",
+    "zod": "^4.4.3"
   },
   "overrides": {
     "esbuild": "^0.28.1",

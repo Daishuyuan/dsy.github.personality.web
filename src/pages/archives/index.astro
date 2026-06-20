@@ -1,29 +1,43 @@
 ---
-import { getCollection } from "astro:content";
+import ContentSourceError from "../../features/content/components/ContentSourceError.astro";
+import { getPublicArticles, getPublicContentErrorMessage } from "../../features/content/source";
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import { formatDate, getArchiveGroups, getPostPath } from "../../lib/posts";
+import type { BlogPost } from "../../lib/posts";
 
-const groups = getArchiveGroups(await getCollection("blog"));
+let contentError = "";
+let groups: Array<[string, BlogPost[]]> = [];
+try {
+  groups = getArchiveGroups(await getPublicArticles());
+} catch (error) {
+  contentError = getPublicContentErrorMessage(error);
+}
 ---
 
 <BaseLayout title="归档 | Daishuyuan">
   <section class="page-heading">
+    <p class="eyebrow">Archive</p>
     <h1>归档</h1>
+    <p>按时间回看旧文、笔记与迁移保留下来的技术记录。</p>
   </section>
 
-  <section class="archive-list">
-    {groups.map(([month, posts]) => (
-      <section class="archive-group">
-        <h2>{month}</h2>
-        <ol>
-          {posts.map((post) => (
-            <li>
-              <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
-              <a href={getPostPath(post)}>{post.data.title}</a>
-            </li>
-          ))}
-        </ol>
-      </section>
-    ))}
-  </section>
+  {contentError ? (
+    <ContentSourceError message={contentError} />
+  ) : (
+    <section class="archive-list">
+      {groups.map(([month, posts]) => (
+        <section class="archive-group">
+          <h2>{month}</h2>
+          <ol>
+            {posts.map((post) => (
+              <li>
+                <time datetime={post.publishedDate}>{formatDate(post.publishedDate)}</time>
+                <a href={getPostPath(post)}>{post.title}</a>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ))}
+    </section>
+  )}
 </BaseLayout>

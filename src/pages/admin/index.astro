@@ -1,0 +1,13 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import AdminApp from "../../features/cms/admin/AdminApp.vue";
+---
+
+<BaseLayout title="CMS | Daishuyuan">
+  <section class="page-heading">
+    <p class="eyebrow">Owner CMS</p>
+    <h1>文章管理</h1>
+    <p>私有写作、发布、图片上传与回滚入口。</p>
+  </section>
+  <AdminApp client:only="vue" />
+</BaseLayout>

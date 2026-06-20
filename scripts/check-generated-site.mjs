@@ -5,6 +5,11 @@ import { fileURLToPath } from "node:url";
 
 const rootDir = resolve(fileURLToPath(new URL("../", import.meta.url)));
 const distDir = join(rootDir, "dist");
+const clientDistDir = join(distDir, "client");
+const staticRoot = (await exists(clientDistDir)) ? clientDistDir : distDir;
+const serverOutput =
+  (await exists(join(distDir, "server"))) ||
+  (await exists(join(rootDir, ".vercel", "output", "_functions", "entry.mjs")));
 const attrPattern = /\s(?:href|src)=["']([^"']+)["']/g;
 
 async function exists(path) {
@@ -53,10 +58,14 @@ function toGeneratedPath(value, htmlFile) {
   if (url.origin !== "https://local.test") return null;
 
   const pathname = safeDecodePath(url.pathname);
-  if (pathname === "/") return join(distDir, "index.html");
+  if (serverOutput && !pathname.startsWith("/assets/") && !pathname.startsWith("/_astro/")) {
+    return null;
+  }
+
+  if (pathname === "/") return join(staticRoot, "index.html");
 
   const basePath = pathname.startsWith("/")
-    ? join(distDir, pathname.slice(1))
+    ? join(staticRoot, pathname.slice(1))
     : join(dirname(htmlFile), pathname);
 
   if (pathname.endsWith("/")) return join(basePath, "index.html");
@@ -65,7 +74,7 @@ function toGeneratedPath(value, htmlFile) {
 }
 
 const missing = [];
-const htmlFiles = await walkHtmlFiles(distDir);
+const htmlFiles = await walkHtmlFiles(staticRoot);
 
 for (const htmlFile of htmlFiles) {
   const html = await readFile(htmlFile, "utf8");

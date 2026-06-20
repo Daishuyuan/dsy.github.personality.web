@@ -1,36 +1,47 @@
 ---
-import { getCollection, render } from "astro:content";
 import EngagementPanel from "../features/engagement/components/EngagementPanel.vue";
+import ContentSourceError from "../features/content/components/ContentSourceError.astro";
+import { findPublicArticleByPath, getPublicCacheHeaders, getPublicContentErrorMessage } from "../features/content/source";
 import BaseLayout from "../layouts/BaseLayout.astro";
-import { formatDate, getPostArticleId, getPostPath } from "../lib/posts";
+import { formatDate, getPostArticleId } from "../lib/posts";
+import type { BlogPost } from "../lib/posts";
 
-export async function getStaticPaths() {
-  const posts = await getCollection("blog");
-  return posts.map((post) => ({
-    params: { slug: getPostPath(post).replace(/^\/|\/$/g, "") },
-    props: { post }
-  }));
+for (const [name, value] of Object.entries(getPublicCacheHeaders())) {
+  Astro.response.headers.set(name, value);
 }
 
-const { post } = Astro.props;
-const { Content } = await render(post);
-const articleId = getPostArticleId(post);
+const slug = `/${String(Astro.params.slug ?? "").replace(/^\/+|\/+$/g, "")}/`;
+let contentError = "";
+let post: BlogPost | null = null;
+try {
+  post = await findPublicArticleByPath(slug);
+} catch (error) {
+  contentError = getPublicContentErrorMessage(error);
+}
+if (!post && !contentError) {
+  return new Response("Not found", { status: 404 });
+}
+const articleId = post ? getPostArticleId(post) : "";
 ---
 
-<BaseLayout title={`${post.data.title} | Daishuyuan`}>
-  <article class="article-shell">
-    <header class="article-header">
-      <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
-      <h1>{post.data.title}</h1>
-      <ul class="tag-row" aria-label={`${post.data.title} tags`}>
-        {post.data.tags.map((tag: string) => (
-          <li><a href={`/tags/${encodeURIComponent(tag)}/`}>{tag}</a></li>
-        ))}
-      </ul>
-    </header>
-    <div class="article-content">
-      <Content />
-    </div>
-    <EngagementPanel client:only="vue" articleId={articleId} title={post.data.title} />
-  </article>
+<BaseLayout title={post ? `${post.title} | Daishuyuan` : "文章数据库不可用 | Daishuyuan"}>
+  {contentError ? (
+    <ContentSourceError message={contentError} />
+  ) : (
+    <article class="article-shell">
+      <header class="article-header">
+        <time datetime={post.publishedDate}>{formatDate(post.publishedDate)}</time>
+        <h1>{post.title}</h1>
+        <ul class="tag-row" aria-label={`${post.title} tags`}>
+          {post.tags.map((tag: string) => (
+            <li><a href={`/tags/${encodeURIComponent(tag)}/`}>{tag}</a></li>
+          ))}
+        </ul>
+      </header>
+      <div class="article-content">
+        <Fragment set:html={post.renderedHtml} />
+      </div>
+      <EngagementPanel client:only="vue" articleId={articleId} title={post.title} />
+    </article>
+  )}
 </BaseLayout>

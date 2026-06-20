@@ -6,7 +6,7 @@ interface Props {
 
 const {
   title = "Daishuyuan",
-  description = "Personal technical notes on software engineering, algorithms, architecture, and machine learning."
+  description = "A bilingual personal notebook on software engineering, algorithms, architecture, and machine learning."
 } = Astro.props;
 ---
 
@@ -21,16 +21,20 @@ const {
     <link rel="stylesheet" href="/styles/global.css" />
   </head>
   <body>
+    <div class="site-ground" aria-hidden="true"></div>
     <header class="site-header">
-      <a class="brand" href="/" aria-label="Daishuyuan home">
-        <img src="/assets/img/face.jpg" alt="" />
-        <span>Daishuyuan</span>
-      </a>
+      <div class="brand">
+        <a class="brand-mark" href="/admin/" aria-label="进入后台">笺</a>
+        <a class="brand-copy" href="/" aria-label="Daishuyuan home">
+          <strong>Daishuyuan</strong>
+          <small>技术札记 / Field Notes</small>
+        </a>
+      </div>
       <nav aria-label="Primary">
-        <a href="/">文章</a>
-        <a href="/visual-algorithms/">可视化算法</a>
-        <a href="/archives/">归档</a>
-        <a href="/tags/">标签</a>
+        <a href="/" aria-label="Essays"><span>文章</span><small>Essays</small></a>
+        <a href="/visual-algorithms/" aria-label="Visual Algorithm Lab"><span>可视化算法</span><small>Visual Lab</small></a>
+        <a href="/archives/" aria-label="Archive"><span>归档</span><small>Archive</small></a>
+        <a href="/tags/" aria-label="Tags"><span>标签</span><small>Tags</small></a>
       </nav>
     </header>
     <main>
@@ -38,6 +42,7 @@ const {
     </main>
     <footer class="site-footer">
       <span>Daishuyuan</span>
+      <span>以代码格物，以文字存思 / Thinking through code, keeping notes in words.</span>
     </footer>
   </body>
 </html>

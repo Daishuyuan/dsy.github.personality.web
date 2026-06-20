@@ -1,47 +1,81 @@
 ---
-import { getCollection } from "astro:content";
+import ContentSourceError from "../features/content/components/ContentSourceError.astro";
+import { getPublicArticles, getPublicContentErrorMessage } from "../features/content/source";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import { formatDate, getAllTags, getPostPath, sortPosts } from "../lib/posts";
+import type { BlogPost } from "../lib/posts";
 
-const posts = sortPosts(await getCollection("blog"));
-const tags = getAllTags(posts);
+let contentError = "";
+let posts: BlogPost[] = [];
+try {
+  posts = sortPosts(await getPublicArticles());
+} catch (error) {
+  contentError = getPublicContentErrorMessage(error);
+}
+const tags = contentError ? [] : getAllTags(posts);
 ---
 
 <BaseLayout title="Daishuyuan">
-  <section class="intro">
-    <p class="eyebrow">Technical Notes</p>
-    <h1>Daishuyuan</h1>
-    <p>软件工程、算法、架构和机器学习笔记。</p>
-  </section>
-
-  <section class="content-grid" aria-label="Blog overview">
-    <div class="post-list">
-      {posts.map((post) => (
-        <article class="post-card">
-          <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
-          <h2><a href={getPostPath(post)}>{post.data.title}</a></h2>
-          <ul class="tag-row" aria-label={`${post.data.title} tags`}>
-            {post.data.tags.map((tag) => (
-              <li><a href={`/tags/${encodeURIComponent(tag)}/`}>{tag}</a></li>
-            ))}
-          </ul>
-        </article>
-      ))}
+  <section class="intro home-hero">
+    <div class="hero-copy">
+      <p class="eyebrow">格物 · Code · Notes</p>
+      <h1>技术札记</h1>
+      <p class="hero-lede">
+        软件工程、算法、架构和机器学习的长期笔记。
+        <span>Field notes on software engineering, algorithms, architecture, and machine learning.</span>
+      </p>
+      <div class="hero-actions" aria-label="Featured sections">
+        <a class="text-link strong-link" href="/visual-algorithms/">进入可视化算法 / Explore the Visual Lab</a>
+        <a class="text-link" href="/archives/">查看归档 / Browse Archive</a>
+      </div>
     </div>
-
-    <aside class="side-panel" aria-label="Navigation summary">
-      <section>
-        <h2>归档</h2>
-        <a class="text-link" href="/archives/">全部文章</a>
-      </section>
-      <section>
-        <h2>标签</h2>
-        <div class="tag-cloud">
-          {tags.map((tag) => (
-            <a href={`/tags/${encodeURIComponent(tag)}/`}>{tag}</a>
-          ))}
-        </div>
-      </section>
+    <aside class="hero-aside" aria-label="Site identity">
+      <figure class="hero-art">
+        <img src="/assets/site/hero-ink-study.webp" alt="" loading="eager" />
+      </figure>
+      <div class="seal" aria-hidden="true">知</div>
+      <p>以代码格物，以文字存思。</p>
+      <small>Thinking through code, keeping notes in words.</small>
     </aside>
   </section>
+
+  {contentError ? (
+    <ContentSourceError message={contentError} />
+  ) : (
+    <section class="content-grid" aria-label="Blog overview">
+      <div class="post-list">
+        {posts.map((post) => (
+          <article class="post-card">
+            <div class="post-meta">
+              <time datetime={post.publishedDate}>{formatDate(post.publishedDate)}</time>
+              <span>Essay</span>
+            </div>
+            <h2><a href={getPostPath(post)}>{post.title}</a></h2>
+            <ul class="tag-row" aria-label={`${post.title} tags`}>
+              {post.tags.map((tag) => (
+                <li><a href={`/tags/${encodeURIComponent(tag)}/`}>{tag}</a></li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </div>
+
+      <aside class="side-panel" aria-label="Navigation summary">
+        <section>
+          <p class="panel-kicker">Archive</p>
+          <h2>归档</h2>
+          <a class="text-link" href="/archives/">全部文章</a>
+        </section>
+        <section>
+          <p class="panel-kicker">Tags</p>
+          <h2>标签</h2>
+          <div class="tag-cloud">
+            {tags.map((tag) => (
+              <a href={`/tags/${encodeURIComponent(tag)}/`}>{tag}</a>
+            ))}
+          </div>
+        </section>
+      </aside>
+    </section>
+  )}
 </BaseLayout>
