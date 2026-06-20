@@ -12,6 +12,7 @@
     "cleanup:engagement-legacy": "node scripts/cleanup-engagement-legacy-data.mjs --apply",
     "cms:import-local": "node scripts/cms-import-local.mjs",
     "cms:verify-migration": "node scripts/cms-verify-migration.mjs",
+    "cms:migrate-images-supabase": "node scripts/cms-migrate-blog-images-to-supabase.mjs",
     "cms:export": "node scripts/cms-export.mjs",
     "test:algorithms": "vitest run",
     "test:cms": "vitest run src/features/cms src/features/content",

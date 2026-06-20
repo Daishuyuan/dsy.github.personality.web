@@ -6,20 +6,36 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { ref, watch } from "vue";
+import { renderArticlePreviewHtml } from "./previewHtml";
 
-const props = defineProps<{ markdown: string }>();
+const props = defineProps<{
+  markdown: string;
+  renderedHtml?: string;
+}>();
 
-const html = computed(() =>
-  props.markdown
-    .replace(/^### (.*$)/gim, "<h3>$1</h3>")
-    .replace(/^## (.*$)/gim, "<h2>$1</h2>")
-    .replace(/^# (.*$)/gim, "<h1>$1</h1>")
-    .replace(/!\[([^\]]*)]\(([^)]+)\)/gim, '<img alt="$1" src="$2" loading="lazy" />')
-    .replace(/\[([^\]]+)]\(([^)]+)\)/gim, '<a href="$2">$1</a>')
-    .replace(/\n\n/g, "</p><p>")
-    .replace(/^/, "<p>")
-    .replace(/$/, "</p>")
+const html = ref("");
+let renderVersion = 0;
+
+watch(
+  () => [props.markdown, props.renderedHtml] as const,
+  async ([markdown, renderedHtml]) => {
+    const version = ++renderVersion;
+    if (renderedHtml) {
+      html.value = renderedHtml;
+    }
+    try {
+      const rendered = await renderArticlePreviewHtml(markdown, renderedHtml);
+      if (version === renderVersion) {
+        html.value = rendered;
+      }
+    } catch {
+      if (version === renderVersion) {
+        html.value = "<p>预览渲染失败。</p>";
+      }
+    }
+  },
+  { immediate: true }
 );
 </script>
 
