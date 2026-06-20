@@ -58,7 +58,7 @@ function toQueryRecord(context: APIContext): Record<string, string | string[]> {
     const values = url.searchParams.getAll(key);
     query[key] = values.length > 1 ? values : values[0] ?? "";
   }
-  return { ...query, ...context.params };
+  return { ...query, ...toRouteParamRecord(context.params) };
 }
 
 async function readRequestBody(request: Request): Promise<unknown> {
@@ -67,4 +67,22 @@ async function readRequestBody(request: Request): Promise<unknown> {
   }
   const text = await request.text();
   return text;
+}
+
+function toRouteParamRecord(params: APIContext["params"]): Record<string, string> {
+  const record: Record<string, string> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string") {
+      record[key] = decodeRouteParam(value);
+    }
+  }
+  return record;
+}
+
+function decodeRouteParam(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
