@@ -104,6 +104,18 @@ export async function signOutAdmin(): Promise<void> {
   clearStoredToken();
 }
 
+export async function verifyAdminAccess(token: string): Promise<void> {
+  const response = await fetch("/api/cms/health", {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload.success === false) {
+    throw new AdminRequestError(payload.error?.message ?? "管理权限验证失败。", response.status, payload.error?.code);
+  }
+}
+
 async function getAuthToken(): Promise<string> {
   const state = await getAdminAuthState();
   if (state.token) {

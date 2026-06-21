@@ -83,7 +83,8 @@ import {
   getAdminAuthState,
   signInWithGoogle,
   signOutAdmin,
-  storeToken
+  storeToken,
+  verifyAdminAccess
 } from "./adminClient";
 import ArticleEditor from "./ArticleEditor.vue";
 import { withDerivedPublishFields } from "./publishFields";
@@ -137,16 +138,20 @@ async function refreshAuth(loadWhenReady = false) {
   authLoading.value = true;
   try {
     const state = await getAdminAuthState();
-    ready.value = state.ready;
     authMode.value = state.mode;
-    authEmail.value = state.email ?? "";
     authMessage.value = state.message ?? "";
+    if (state.ready && state.token) {
+      await verifyAdminAccess(state.token);
+    }
+    ready.value = state.ready;
+    authEmail.value = state.email ?? "";
     if (state.ready && loadWhenReady) {
       await loadArticles();
     }
   } catch (error) {
+    await signOutAdmin();
     ready.value = false;
-    authMode.value = "unconfigured";
+    authEmail.value = "";
     authMessage.value = error instanceof Error ? error.message : "登录状态读取失败。";
   } finally {
     authLoading.value = false;
