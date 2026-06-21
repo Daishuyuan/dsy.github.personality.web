@@ -91,6 +91,9 @@ export function toApiError(error: unknown): CmsApiError {
     return new CmsApiError("CONTENT_SOURCE_UNAVAILABLE", error.message);
   }
   if (error instanceof Error) {
+    if (error.message === "文章版本已变化，请刷新后重试。") {
+      return new CmsApiError("CONFLICT", error.message);
+    }
     if (error.message === "RESERVED_PATH") {
       return new CmsApiError("RESERVED_PATH", "文章路径不允许使用。");
     }

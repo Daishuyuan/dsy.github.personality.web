@@ -1,12 +1,25 @@
 import type { Article } from "../types";
 
-export function withDerivedPublishFields(article: Partial<Article>): Partial<Article> {
+export type ArticleSaveDraft = Partial<Article> & { expectedVersion?: number };
+
+export function withDerivedPublishFields(article: Partial<Article>): ArticleSaveDraft {
   const publishedDate = article.publishedDate || todayDate();
   const title = article.title || "New Note";
   return {
     ...article,
     publishedDate,
     legacyPath: legacyPathFromTitle(title, publishedDate)
+  };
+}
+
+export function withSaveExpectedVersion(article: Partial<Article>): ArticleSaveDraft {
+  const draft = withDerivedPublishFields(article);
+  if (!draft.articleId || !article.version) {
+    return draft;
+  }
+  return {
+    ...draft,
+    expectedVersion: article.version
   };
 }
 

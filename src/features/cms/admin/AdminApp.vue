@@ -87,7 +87,8 @@ import {
   verifyAdminAccess
 } from "./adminClient";
 import ArticleEditor from "./ArticleEditor.vue";
-import { withDerivedPublishFields } from "./publishFields";
+import { withDerivedPublishFields, withSaveExpectedVersion, type ArticleSaveDraft } from "./publishFields";
+import { isVersionConflictError, rebaseDraftOnLatestVersion } from "./versionConflict";
 import VersionHistory from "./VersionHistory.vue";
 
 const ready = ref(false);
@@ -228,19 +229,40 @@ async function selectArticle(articleId: string) {
 
 async function save() {
   busy.value = true;
+  const draft = withSaveExpectedVersion(current.value);
   try {
-    const draft = withDerivedPublishFields(current.value);
-    const method = draft.articleId ? "PATCH" : "POST";
-    const path = draft.articleId ? `/api/cms/posts/${encodeURIComponent(draft.articleId)}` : "/api/cms/posts";
-    current.value = await adminFetch<Article>(path, { method, body: JSON.stringify(draft) });
-    selectedArticleId.value = current.value.articleId ?? "";
-    await loadArticles();
+    await submitDraft(draft);
     ElMessage.success("已保存");
   } catch (error) {
-    handleAdminError(error, "保存失败");
+    try {
+      if (await retrySaveAfterVersionConflict(error, draft)) {
+        ElMessage.success("已基于最新版本保存");
+        return;
+      }
+      handleAdminError(error, "保存失败");
+    } catch (retryError) {
+      handleAdminError(retryError, "保存失败");
+    }
   } finally {
     busy.value = false;
   }
+}
+
+async function submitDraft(draft: ArticleSaveDraft) {
+  const method = draft.articleId ? "PATCH" : "POST";
+  const path = draft.articleId ? `/api/cms/posts/${encodeURIComponent(draft.articleId)}` : "/api/cms/posts";
+  current.value = await adminFetch<Article>(path, { method, body: JSON.stringify(draft) });
+  selectedArticleId.value = current.value.articleId ?? "";
+  await loadArticles();
+}
+
+async function retrySaveAfterVersionConflict(error: unknown, draft: ArticleSaveDraft): Promise<boolean> {
+  if (!isVersionConflictError(error) || !draft.articleId) {
+    return false;
+  }
+  const latest = await adminFetch<Article>(`/api/cms/posts/${encodeURIComponent(draft.articleId)}`);
+  await submitDraft(withDerivedPublishFields(rebaseDraftOnLatestVersion(draft, latest)));
+  return true;
 }
 
 async function publish() {
