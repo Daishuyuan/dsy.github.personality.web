@@ -28,7 +28,7 @@
     "@supabase/supabase-js": "^2.108.2",
     "astro": "^6.0.0",
     "element-plus": "^2.14.2",
-    "gray-matter": "^4.0.3",
+    "js-yaml": "^4.2.0",
     "mongodb": "^7.3.0",
     "rehype-raw": "^7.0.0",
     "rehype-sanitize": "^6.0.0",
@@ -42,10 +42,12 @@
   },
   "overrides": {
     "esbuild": "^0.28.1",
-    "extend": "^3.0.2"
+    "extend": "^3.0.2",
+    "path-to-regexp": "6.3.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.61.0",
+    "@types/js-yaml": "^4.0.9",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   }

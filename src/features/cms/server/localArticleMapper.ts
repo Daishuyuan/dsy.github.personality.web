@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
-import matter from "gray-matter";
+import { load as parseYaml } from "js-yaml";
 import type { Article } from "../types.ts";
 import { getArticleIdForContentId } from "../../engagement/articleIdentity.ts";
 import { renderMarkdown } from "../../content/markdown.ts";
@@ -8,7 +8,7 @@ import { normalizeLegacyPath, slugSegmentsFromPath } from "../validation.ts";
 
 export async function mapLocalMarkdownFile(filePath: string): Promise<Article> {
   const raw = await readFile(filePath, "utf8");
-  const parsed = matter(raw);
+  const parsed = parseFrontmatter(raw);
   const contentId = basename(filePath, ".md");
   const title = String(parsed.data.title ?? contentId);
   const date = normalizeDate(parsed.data.date);
@@ -41,4 +41,27 @@ function normalizeDate(value: unknown): string {
   }
   const date = new Date(String(value));
   return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+}
+
+interface ParsedMarkdown {
+  data: Record<string, unknown>;
+  content: string;
+}
+
+function parseFrontmatter(raw: string): ParsedMarkdown {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/.exec(raw);
+  if (!match) {
+    return { data: {}, content: raw };
+  }
+
+  const yaml = match[1] ?? "";
+  const loaded = parseYaml(yaml);
+  return {
+    data: isRecord(loaded) ? loaded : {},
+    content: raw.slice(match[0].length)
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
