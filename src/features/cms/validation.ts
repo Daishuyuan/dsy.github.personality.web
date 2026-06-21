@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ArticleDraftInput, ArticleStatus } from "./types.ts";
+import type { ArticleDraftInput, ArticleStatus, AuditAction } from "./types.ts";
 
 export const ARTICLE_STATUS_VALUES = ["draft", "published", "archived"] as const;
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
@@ -13,6 +13,21 @@ export const RESERVED_PATH_PREFIXES = [
   "/archives/",
   "/tags/"
 ] as const;
+export const ASSET_FILTER_STATES = ["all", "used", "unused", "unavailable", "recent"] as const;
+export const AUDIT_ACTION_VALUES = [
+  "article.create",
+  "article.update",
+  "article.publish",
+  "article.archive",
+  "article.rollback",
+  "asset.upload",
+  "import.run",
+  "export.run",
+  "health.run",
+  "verification.run",
+  "auth.failure",
+  "storage.failure"
+] as const satisfies readonly AuditAction[];
 
 const articleIdSchema = z
   .string()
@@ -60,6 +75,37 @@ export const uploadSchema = z.object({
   contentType: z.enum(ALLOWED_IMAGE_TYPES),
   sizeBytes: z.number().int().positive().max(MAX_IMAGE_BYTES),
   articleId: articleIdSchema.optional()
+});
+
+export const operationsSummaryQuerySchema = z.object({
+  includeIssues: z.coerce.boolean().default(false)
+});
+
+export const healthRunSchema = z.object({
+  scope: z.enum(["all", "published"]).default("all"),
+  includeDrafts: z.boolean().default(true),
+  checkImageAvailability: z.boolean().default(false)
+});
+
+export const assetListQuerySchema = z.object({
+  state: z.enum(ASSET_FILTER_STATES).default("all"),
+  q: z.string().trim().max(120).optional(),
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(50).default(20)
+});
+
+export const auditListQuerySchema = z.object({
+  action: z.enum(AUDIT_ACTION_VALUES).optional(),
+  articleId: articleIdSchema.optional(),
+  assetId: z.string().trim().min(2).max(120).optional(),
+  page: z.coerce.number().int().positive().default(1),
+  pageSize: z.coerce.number().int().positive().max(100).default(20)
+});
+
+export const verificationRunSchema = z.object({
+  scope: z.enum(["cms-critical"]).default("cms-critical"),
+  includePublicRead: z.boolean().default(true),
+  includeEngagementIdentity: z.boolean().default(true)
 });
 
 export function parseArticleDraft(input: unknown): ArticleDraftInput {

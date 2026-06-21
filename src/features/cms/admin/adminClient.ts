@@ -1,5 +1,14 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Article, ImageAsset } from "../types";
+import type {
+  ActivityRecord,
+  Article,
+  ContentHealthReport,
+  ImageAsset,
+  ImageLibraryItem,
+  OperationsSummary,
+  PaginatedResult,
+  VerificationRun
+} from "../types";
 
 export interface AdminAuthState {
   ready: boolean;
@@ -163,6 +172,53 @@ export function emptyArticle(): Partial<Article> {
     status: "draft",
     markdown: "# New Note\n\n"
   };
+}
+
+export function loadOperationsSummary(includeIssues = false) {
+  return adminFetch<OperationsSummary>(`/api/cms/operations?includeIssues=${includeIssues ? "true" : "false"}`);
+}
+
+export function runHealthCheck() {
+  return adminFetch<ContentHealthReport>("/api/cms/operations/health", {
+    method: "POST",
+    body: JSON.stringify({ scope: "all", includeDrafts: true, checkImageAvailability: false })
+  });
+}
+
+export function loadImageLibrary(params: { state: string; q?: string; page?: number; pageSize?: number }) {
+  const search = new URLSearchParams({
+    state: params.state,
+    page: String(params.page ?? 1),
+    pageSize: String(params.pageSize ?? 20)
+  });
+  if (params.q) {
+    search.set("q", params.q);
+  }
+  return adminFetch<PaginatedResult<ImageLibraryItem>>(`/api/cms/assets?${search.toString()}`);
+}
+
+export function loadActivity(params: { action?: string; articleId?: string; assetId?: string; page?: number; pageSize?: number }) {
+  const search = new URLSearchParams({
+    page: String(params.page ?? 1),
+    pageSize: String(params.pageSize ?? 20)
+  });
+  if (params.action) {
+    search.set("action", params.action);
+  }
+  if (params.articleId) {
+    search.set("articleId", params.articleId);
+  }
+  if (params.assetId) {
+    search.set("assetId", params.assetId);
+  }
+  return adminFetch<PaginatedResult<ActivityRecord>>(`/api/cms/audit?${search.toString()}`);
+}
+
+export function runVerification() {
+  return adminFetch<VerificationRun>("/api/cms/verification", {
+    method: "POST",
+    body: JSON.stringify({ scope: "cms-critical", includePublicRead: true, includeEngagementIdentity: true })
+  });
 }
 
 export async function fileToUploadPayload(file: File, articleId?: string) {

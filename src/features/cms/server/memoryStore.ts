@@ -1,4 +1,13 @@
-import type { Article, ArticleVersion, AuditEvent, ContentExport, ImageAsset, MigrationReport } from "../types.ts";
+import type {
+  Article,
+  ArticleVersion,
+  AuditEvent,
+  ContentExport,
+  ContentHealthReport,
+  ImageAsset,
+  MigrationReport,
+  VerificationRun
+} from "../types.ts";
 
 export interface CmsMemoryStore {
   articles: Article[];
@@ -7,6 +16,8 @@ export interface CmsMemoryStore {
   auditEvents: AuditEvent[];
   exports: ContentExport[];
   migrationReports: MigrationReport[];
+  healthReports: ContentHealthReport[];
+  verificationRuns: VerificationRun[];
 }
 
 type GlobalWithCmsMemory = typeof globalThis & {
@@ -23,7 +34,9 @@ export function getCmsMemoryStore(): CmsMemoryStore {
       assets: [],
       auditEvents: [],
       exports: [],
-      migrationReports: []
+      migrationReports: [],
+      healthReports: [],
+      verificationRuns: []
     };
   }
   return globalStore.__cmsMemoryStore;

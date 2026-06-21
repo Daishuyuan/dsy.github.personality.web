@@ -19,7 +19,8 @@
     "test:e2e": "playwright test",
     "test:e2e:preview": "npm run build && PLAYWRIGHT_BASE_URL=http://127.0.0.1:4322 PLAYWRIGHT_SERVER_URL=http://127.0.0.1:4322 PLAYWRIGHT_SERVER_COMMAND=\"npm run dev -- --host 127.0.0.1 --port 4322\" playwright test",
     "verify:cms": "npm run test:cms && npm run cms:import-local -- --dry-run",
-    "verify": "npm run build && npm run check:site && npm run check:content && npm run test:algorithms && npm run verify:cms"
+    "verify:cms-ops": "vitest run src/features/cms/tests/operationsValidation.test.ts src/features/cms/tests/healthReportService.test.ts src/features/cms/tests/operationsApi.test.ts src/features/cms/tests/assetLibraryService.test.ts src/features/cms/tests/assetsApi.test.ts src/features/cms/tests/activityService.test.ts src/features/cms/tests/auditApi.test.ts src/features/cms/tests/verificationService.test.ts src/features/cms/tests/verificationApi.test.ts",
+    "verify": "npm run build && npm run check:site && npm run check:content && npm run test:algorithms && npm run verify:cms && npm run verify:cms-ops"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.6.0",

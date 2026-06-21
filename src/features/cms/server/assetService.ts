@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { ImageAsset } from "../types.ts";
+import { listOwnerArticles } from "./articleRepository.ts";
+import { listImageLibraryItems } from "./assetRepository.ts";
 import { MAX_IMAGE_BYTES, uploadSchema } from "../validation.ts";
 import { writeAuditEvent } from "./auditRepository.ts";
 import { getCmsEnv } from "./env.ts";
@@ -56,6 +58,16 @@ export async function uploadImage(input: UploadImageInput, actor = "owner"): Pro
   return asset;
 }
 
+export async function listImageLibrary(query: {
+  state: "all" | "used" | "unused" | "unavailable" | "recent";
+  q?: string;
+  page: number;
+  pageSize: number;
+}) {
+  const articles = await listAllOwnerArticles();
+  return listImageLibraryItems(query, articles);
+}
+
 function createObjectPath(fileName: string): string {
   const now = new Date();
   const safeName = sanitizeFileName(fileName);
@@ -71,4 +83,9 @@ function sanitizeFileName(fileName: string): string {
     .replace(/[^a-z0-9-]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return `${base || "image"}${ext}`;
+}
+
+async function listAllOwnerArticles() {
+  const firstPage = await listOwnerArticles({ page: 1, pageSize: 500 });
+  return firstPage.items;
 }

@@ -24,7 +24,10 @@ export type CmsErrorCode =
   | "NOT_FOUND"
   | "UPLOAD_REJECTED"
   | "STORAGE_FAILURE"
-  | "CONTENT_SOURCE_UNAVAILABLE";
+  | "CONTENT_SOURCE_UNAVAILABLE"
+  | "HEALTH_CHECK_FAILED"
+  | "VERIFICATION_FAILED"
+  | "OPERATION_PARTIAL";
 
 export class CmsApiError extends Error {
   readonly code: CmsErrorCode;
@@ -121,6 +124,9 @@ function statusForCode(code: CmsErrorCode): number {
       return 502;
     case "CONTENT_SOURCE_UNAVAILABLE":
       return 503;
+    case "HEALTH_CHECK_FAILED":
+    case "VERIFICATION_FAILED":
+      return 500;
     default:
       return 400;
   }

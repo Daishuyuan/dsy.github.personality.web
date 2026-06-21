@@ -53,6 +53,129 @@ export interface ImageAsset {
   createdBy: string;
 }
 
+export type HealthReportStatus = "passed" | "warning" | "failed";
+export type HealthIssueSeverity = "info" | "warning" | "error";
+export type HealthIssueCategory =
+  | "article-route"
+  | "article-identity"
+  | "article-rendering"
+  | "image-reference"
+  | "asset-usage"
+  | "storage"
+  | "authorization"
+  | "configuration";
+
+export interface ContentHealthIssue {
+  issueId: string;
+  severity: HealthIssueSeverity;
+  category: HealthIssueCategory;
+  articleId?: string;
+  assetId?: string;
+  imageSource?: string;
+  message: string;
+  recommendedAction: string;
+}
+
+export interface ContentHealthReport {
+  reportId: string;
+  status: HealthReportStatus;
+  checkedAt: string;
+  checkedBy: string;
+  articleCount: number;
+  publishedCount: number;
+  draftCount: number;
+  archivedCount: number;
+  assetCount: number;
+  issueCount: number;
+  issues: ContentHealthIssue[];
+  summary: string;
+}
+
+export type ImageAvailability = "ok" | "unavailable" | "unknown";
+export type ImageUsageKind = "markdown-source" | "rendered-html" | "asset-record";
+
+export interface ImageUsageReference {
+  assetId?: string;
+  imageSource: string;
+  articleId: string;
+  articleTitle: string;
+  articleStatus: ArticleStatus;
+  usageKind: ImageUsageKind;
+  matched: boolean;
+}
+
+export interface ImageLibraryArticleRef {
+  articleId: string;
+  title: string;
+  status: ArticleStatus;
+}
+
+export interface ImageLibraryItem extends ImageAsset {
+  availability: ImageAvailability;
+  usageCount: number;
+  usedByArticles: ImageLibraryArticleRef[];
+  cleanupCandidate: boolean;
+}
+
+export type VerificationRunStatus = "passed" | "failed" | "partial";
+export type VerificationStepStatus = "passed" | "failed" | "skipped" | "blocked";
+
+export interface VerificationStepResult {
+  stepId: string;
+  label: string;
+  status: VerificationStepStatus;
+  required: boolean;
+  articleId?: string;
+  assetId?: string;
+  message: string;
+  durationMs: number;
+}
+
+export interface VerificationRun {
+  runId: string;
+  status: VerificationRunStatus;
+  startedAt: string;
+  finishedAt: string;
+  triggeredBy: string;
+  steps: VerificationStepResult[];
+  summary: string;
+}
+
+export interface OperationsSummary {
+  content: {
+    articleCount: number;
+    publishedCount: number;
+    draftCount: number;
+    archivedCount: number;
+    duplicatePathCount: number;
+    missingRenderedCount: number;
+  };
+  assets: {
+    assetCount: number;
+    usedCount: number;
+    unusedCount: number;
+    unavailableCount: number;
+  };
+  activity: {
+    latestEventAt?: string;
+    recentFailureCount: number;
+  };
+  latestHealth?: Pick<ContentHealthReport, "status" | "checkedAt" | "issueCount"> & {
+    issues?: ContentHealthIssue[];
+  };
+}
+
+export interface ActivityRecord {
+  eventId: string;
+  action: AuditAction;
+  actor: string;
+  articleId?: string;
+  assetId?: string;
+  result: "success" | "failure" | "unknown";
+  summary: string;
+  createdAt: string;
+}
+
 export type AuditAction =
   | "article.create"
   | "article.update"
@@ -62,6 +185,8 @@ export type AuditAction =
   | "asset.upload"
   | "import.run"
   | "export.run"
+  | "health.run"
+  | "verification.run"
   | "auth.failure"
   | "storage.failure";
 

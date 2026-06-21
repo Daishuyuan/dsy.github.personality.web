@@ -20,7 +20,11 @@
     </section>
 
     <template v-else>
-      <section class="cms-toolbar">
+      <section class="cms-nav">
+        <ElSegmented v-model="activeView" :options="viewOptions" />
+      </section>
+
+      <section v-if="activeView === 'articles'" class="cms-toolbar">
         <div class="toolbar-actions">
           <ElButton type="primary" :icon="Plus" @click="createNew">新文章</ElButton>
           <ElButton :icon="Refresh" :loading="loading" @click="loadArticles">刷新</ElButton>
@@ -52,6 +56,7 @@
           :busy="busy"
           :loading="detailLoading"
           :tag-options="tagOptions"
+          :image-insertion="imageInsertion"
           @save="save"
           @publish="publish"
           @archive="archive"
@@ -60,11 +65,22 @@
       </div>
 
       <VersionHistory
-        v-if="current.articleId"
+        v-if="activeView === 'articles' && current.articleId"
         :article-id="current.articleId"
         :version="current.version ?? 0"
         @restored="selectArticle(current.articleId!)"
       />
+
+      <section v-if="activeView !== 'articles'" class="operations-panel">
+        <OperationsDashboard v-if="activeView === 'health'" />
+        <ImageLibrary
+          v-else-if="activeView === 'images'"
+          :current-article-id="current.articleId"
+          @insert="insertImage"
+        />
+        <ActivityTimeline v-else-if="activeView === 'activity'" />
+        <VerificationPanel v-else-if="activeView === 'verification'" />
+      </section>
     </template>
   </main>
 </template>
@@ -73,8 +89,8 @@
 import "element-plus/dist/index.css";
 import { computed, onMounted, ref } from "vue";
 import { Plus, Refresh } from "@element-plus/icons-vue";
-import { ElAlert, ElButton, ElInput, ElMessage } from "element-plus";
-import type { Article } from "../types";
+import { ElAlert, ElButton, ElInput, ElMessage, ElSegmented } from "element-plus";
+import type { Article, ImageLibraryItem } from "../types";
 import {
   AdminRequestError,
   adminFetch,
@@ -87,8 +103,12 @@ import {
   verifyAdminAccess
 } from "./adminClient";
 import ArticleEditor from "./ArticleEditor.vue";
+import ActivityTimeline from "./ActivityTimeline.vue";
+import ImageLibrary from "./ImageLibrary.vue";
+import OperationsDashboard from "./OperationsDashboard.vue";
 import { withDerivedPublishFields, withSaveExpectedVersion, type ArticleSaveDraft } from "./publishFields";
 import { isVersionConflictError, rebaseDraftOnLatestVersion } from "./versionConflict";
+import VerificationPanel from "./VerificationPanel.vue";
 import VersionHistory from "./VersionHistory.vue";
 
 const ready = ref(false);
@@ -103,8 +123,18 @@ const detailLoading = ref(false);
 const articles = ref<Article[]>([]);
 const current = ref<Partial<Article>>(emptyArticle());
 const selectedArticleId = ref("");
+const activeView = ref("articles");
+const imageInsertion = ref<{ nonce: number; markdown: string }>();
 let selectRequestId = 0;
+let imageInsertionNonce = 0;
 const baseTagOptions = ["Notes", "算法", "JavaScript", "前端", "后端", "架构", "数据库", "机器学习", "工程实践"];
+const viewOptions = [
+  { label: "文章", value: "articles" },
+  { label: "健康", value: "health" },
+  { label: "图片", value: "images" },
+  { label: "活动", value: "activity" },
+  { label: "验证", value: "verification" }
+];
 const statusLabels: Record<Article["status"], string> = {
   draft: "草稿",
   published: "已发布",
@@ -184,6 +214,7 @@ async function logout() {
 }
 
 function createNew() {
+  activeView.value = "articles";
   current.value = emptyArticle();
   selectedArticleId.value = "";
 }
@@ -207,6 +238,7 @@ async function loadArticles() {
 }
 
 async function selectArticle(articleId: string) {
+  activeView.value = "articles";
   const requestId = ++selectRequestId;
   selectedArticleId.value = articleId;
   detailLoading.value = true;
@@ -313,6 +345,19 @@ async function upload(file: File) {
   }
 }
 
+function insertImage(item: ImageLibraryItem) {
+  if (!current.value.articleId) {
+    ElMessage.warning("请先选择一篇文章。");
+    return;
+  }
+  activeView.value = "articles";
+  imageInsertion.value = {
+    nonce: ++imageInsertionNonce,
+    markdown: `![${item.originalName}](${item.publicUrl})`
+  };
+  ElMessage.success("图片引用已插入正文。");
+}
+
 function statusLabel(value: Article["status"]) {
   return statusLabels[value] ?? value;
 }
@@ -338,6 +383,7 @@ async function resetAuthState() {
   articles.value = [];
   selectedArticleId.value = "";
   current.value = emptyArticle();
+  activeView.value = "articles";
 }
 </script>
 
@@ -349,15 +395,18 @@ async function resetAuthState() {
 
 .cms-panel,
 .cms-toolbar,
+.cms-nav,
 .cms-list,
-.cms-layout {
+.cms-layout,
+.operations-panel {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
 }
 
 .auth-panel,
-.cms-toolbar {
+.cms-toolbar,
+.cms-nav {
   display: flex;
   gap: 0.75rem;
   align-items: center;
@@ -417,6 +466,15 @@ async function resetAuthState() {
 .cms-toolbar {
   justify-content: space-between;
   flex-wrap: wrap;
+}
+
+.cms-nav {
+  justify-content: flex-start;
+}
+
+.operations-panel {
+  min-height: 560px;
+  overflow: hidden;
 }
 
 .toolbar-session {

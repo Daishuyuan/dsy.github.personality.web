@@ -85,7 +85,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import { Check, CollectionTag, Document, FolderDelete, Promotion } from "@element-plus/icons-vue";
 import { ElButton, ElForm, ElFormItem, ElInput, ElOption, ElSegmented, ElSelect, ElSwitch } from "element-plus";
 import type { Article } from "../types";
@@ -98,6 +98,10 @@ const props = defineProps<{
   busy: boolean;
   loading: boolean;
   tagOptions: string[];
+  imageInsertion?: {
+    nonce: number;
+    markdown: string;
+  };
 }>();
 
 const emit = defineEmits<{
@@ -119,6 +123,23 @@ const statusOptions = [
   { label: "已归档", value: "archived" }
 ];
 const derivedLegacyPath = computed(() => legacyPathFromTitle(model.value.title ?? "New Note", model.value.publishedDate ?? todayDate()));
+
+watch(
+  () => props.imageInsertion?.nonce,
+  () => {
+    if (!props.imageInsertion?.markdown) {
+      return;
+    }
+    const currentMarkdown = model.value.markdown ?? "";
+    if (currentMarkdown.includes(props.imageInsertion.markdown)) {
+      return;
+    }
+    model.value = {
+      ...model.value,
+      markdown: `${currentMarkdown.trimEnd()}\n\n${props.imageInsertion.markdown}\n`
+    };
+  }
+);
 
 function setField(field: keyof Article, value: unknown) {
   model.value = { ...model.value, [field]: value };

@@ -1,4 +1,4 @@
-import type { ImageAsset } from "../types.ts";
+import type { Article, ImageAsset, ImageLibraryItem, PaginatedResult } from "../types.ts";
 import { getCmsMemoryStore } from "./memoryStore.ts";
 import { getCmsDatabase } from "./mongo.ts";
 
@@ -26,6 +26,46 @@ export async function listImageAssets(): Promise<ImageAsset[]> {
   return [...getCmsMemoryStore().assets].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+export interface AssetListQuery {
+  state: "all" | "used" | "unused" | "unavailable" | "recent";
+  q?: string;
+  page: number;
+  pageSize: number;
+}
+
+export async function listImageLibraryItems(query: AssetListQuery, articles: Article[]): Promise<PaginatedResult<ImageLibraryItem>> {
+  const articleMap = new Map(articles.map((article) => [article.articleId, article]));
+  let items = (await listImageAssets()).map((asset) => toImageLibraryItem(asset, articleMap));
+  if (query.q) {
+    const needle = query.q.toLowerCase();
+    items = items.filter(
+      (item) => item.originalName.toLowerCase().includes(needle) || item.publicUrl.toLowerCase().includes(needle)
+    );
+  }
+  if (query.state !== "all") {
+    items = items.filter((item) => {
+      switch (query.state) {
+        case "used":
+          return item.usageCount > 0;
+        case "unused":
+          return item.usageCount === 0;
+        case "unavailable":
+          return item.availability === "unavailable";
+        case "recent":
+          return Date.now() - Date.parse(item.createdAt) <= 7 * 24 * 60 * 60 * 1000;
+        default:
+          return true;
+      }
+    });
+  }
+  return {
+    items: items.slice((query.page - 1) * query.pageSize, query.page * query.pageSize),
+    page: query.page,
+    pageSize: query.pageSize,
+    total: items.length
+  };
+}
+
 export async function updateAssetUsageForArticle(articleId: string, imageSources: string[]): Promise<void> {
   const sourceSet = new Set(imageSources);
   const assets = await listImageAssets();
@@ -44,6 +84,24 @@ export async function updateAssetUsageForArticle(articleId: string, imageSources
       }
     })
   );
+}
+
+function toImageLibraryItem(asset: ImageAsset, articleMap: Map<string, Article>): ImageLibraryItem {
+  const usedByArticles = asset.usedByArticleIds
+    .map((articleId) => articleMap.get(articleId))
+    .filter((article): article is Article => Boolean(article))
+    .map((article) => ({
+      articleId: article.articleId,
+      title: article.title,
+      status: article.status
+    }));
+  return {
+    ...asset,
+    availability: asset.publicUrl ? "ok" : "unavailable",
+    usageCount: usedByArticles.length,
+    usedByArticles,
+    cleanupCandidate: usedByArticles.length === 0
+  };
 }
 
 function isAssetReferenced(asset: ImageAsset, imageSources: Set<string>): boolean {

@@ -27,8 +27,15 @@ export async function ensureCmsIndexes(): Promise<void> {
     database.collection("image_assets").createIndex({ bucket: 1, objectPath: 1 }, { unique: true }),
     database.collection("audit_events").createIndex({ eventId: 1 }, { unique: true }),
     database.collection("audit_events").createIndex({ createdAt: -1 }),
+    database.collection("audit_events").createIndex({ action: 1, createdAt: -1 }),
+    database.collection("audit_events").createIndex({ articleId: 1, createdAt: -1 }),
+    database.collection("audit_events").createIndex({ assetId: 1, createdAt: -1 }),
     database.collection("content_exports").createIndex({ exportId: 1 }, { unique: true }),
-    database.collection("migration_reports").createIndex({ reportId: 1 }, { unique: true })
+    database.collection("migration_reports").createIndex({ reportId: 1 }, { unique: true }),
+    database.collection("health_reports").createIndex({ reportId: 1 }, { unique: true }),
+    database.collection("health_reports").createIndex({ checkedAt: -1 }),
+    database.collection("verification_runs").createIndex({ runId: 1 }, { unique: true }),
+    database.collection("verification_runs").createIndex({ startedAt: -1 })
   ]);
 
   globalStore.__cmsIndexesReady = true;
