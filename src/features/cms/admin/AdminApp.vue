@@ -35,7 +35,7 @@
         </div>
       </section>
 
-      <div class="cms-layout" :class="{ 'without-list': articles.length === 0 }">
+      <div v-if="activeView === 'articles'" class="cms-layout" :class="{ 'without-list': articles.length === 0 }">
         <aside v-if="articles.length > 0" class="cms-list">
           <button
             v-for="article in articles"
