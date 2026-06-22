@@ -22,6 +22,15 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       R2_BACKUP_BUCKET: ${{ secrets.R2_BACKUP_BUCKET }}
+      ALIYUN_PDS_DOMAIN_ID: ${{ secrets.ALIYUN_PDS_DOMAIN_ID }}
+      ALIYUN_PDS_ENDPOINT: ${{ secrets.ALIYUN_PDS_ENDPOINT }}
+      ALIYUN_PDS_CLIENT_ID: ${{ secrets.ALIYUN_PDS_CLIENT_ID }}
+      ALIYUN_PDS_CLIENT_SECRET: ${{ secrets.ALIYUN_PDS_CLIENT_SECRET }}
+      ALIYUN_PDS_REFRESH_TOKEN: ${{ secrets.ALIYUN_PDS_REFRESH_TOKEN }}
+      ALIYUN_PDS_DRIVE_ID: ${{ secrets.ALIYUN_PDS_DRIVE_ID }}
+      ALIYUN_PDS_PARENT_FILE_ID: ${{ secrets.ALIYUN_PDS_PARENT_FILE_ID }}
+      ALIYUN_PDS_REMOTE_DIR: ${{ secrets.ALIYUN_PDS_REMOTE_DIR }}
+      ALIYUN_PDS_ENCRYPTION_PASSPHRASE: ${{ secrets.ALIYUN_PDS_ENCRYPTION_PASSPHRASE }}
     steps:
       - uses: actions/checkout@v4
 
@@ -55,3 +64,9 @@ jobs:
         run: |
           set -euo pipefail
           npx wrangler r2 object put "${R2_BACKUP_BUCKET}/${{ steps.backup.outputs.key }}" --file "${{ steps.backup.outputs.archive }}"
+
+      - name: Upload encrypted backup to Aliyun PDS
+        if: env.ALIYUN_PDS_DOMAIN_ID != '' && env.ALIYUN_PDS_CLIENT_ID != '' && env.ALIYUN_PDS_CLIENT_SECRET != '' && env.ALIYUN_PDS_REFRESH_TOKEN != '' && env.ALIYUN_PDS_ENCRYPTION_PASSPHRASE != ''
+        run: |
+          set -euo pipefail
+          npm run cms:upload-aliyun-pds -- --source "${{ steps.backup.outputs.archive }}" --require-encryption --verify-download

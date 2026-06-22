@@ -16,6 +16,7 @@
     "cms:export": "node scripts/cms-export.mjs",
     "cms:backup": "node scripts/cms-backup.mjs",
     "cms:restore-smoke": "node scripts/cms-restore-smoke.mjs",
+    "cms:upload-aliyun-pds": "node scripts/cms-upload-aliyun-pds.mjs",
     "test:algorithms": "vitest run",
     "test:cms": "vitest run src/features/cms src/features/content",
     "test:e2e": "playwright test",
