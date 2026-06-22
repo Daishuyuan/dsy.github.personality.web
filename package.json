@@ -14,6 +14,8 @@
     "cms:verify-migration": "node scripts/cms-verify-migration.mjs",
     "cms:migrate-images-supabase": "node scripts/cms-migrate-blog-images-to-supabase.mjs",
     "cms:export": "node scripts/cms-export.mjs",
+    "cms:backup": "node scripts/cms-backup.mjs",
+    "cms:restore-smoke": "node scripts/cms-restore-smoke.mjs",
     "test:algorithms": "vitest run",
     "test:cms": "vitest run src/features/cms src/features/content",
     "test:e2e": "playwright test",

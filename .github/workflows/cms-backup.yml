@@ -1,0 +1,57 @@
+name: CMS backup
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 18 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MONGODB_URI: ${{ secrets.MONGODB_URI }}
+      MONGODB_DB: dsy_blog
+      MONGODB_TIMEOUT_MS: "15000"
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_STORAGE_BUCKET: blog-images
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      R2_BACKUP_BUCKET: ${{ secrets.R2_BACKUP_BUCKET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Create backup
+        id: backup
+        run: |
+          set -euo pipefail
+          OUT_DIR=".backup/cms-$(date -u +'%Y%m%dT%H%M%SZ')"
+          npm run cms:backup -- --out "$OUT_DIR"
+          ARCHIVE_PATH="${OUT_DIR}.tar.gz"
+          npm run cms:restore-smoke -- --source "$ARCHIVE_PATH"
+          echo "archive=$ARCHIVE_PATH" >> "$GITHUB_OUTPUT"
+          echo "key=blog-cms/$(basename "$ARCHIVE_PATH")" >> "$GITHUB_OUTPUT"
+
+      - name: Keep backup as GitHub artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cms-backup-${{ github.run_id }}
+          path: ${{ steps.backup.outputs.archive }}
+          retention-days: 30
+
+      - name: Upload backup to Cloudflare R2
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.R2_BACKUP_BUCKET != ''
+        run: |
+          set -euo pipefail
+          npx wrangler r2 object put "${R2_BACKUP_BUCKET}/${{ steps.backup.outputs.key }}" --file "${{ steps.backup.outputs.archive }}"

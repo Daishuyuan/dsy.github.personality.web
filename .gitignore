@@ -18,6 +18,8 @@ playwright-report/
 .vscode/
 .idea/
 .vercel/
+backups/
+.backup/
 
 .deploy*/
 .vercel
