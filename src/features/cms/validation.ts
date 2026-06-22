@@ -21,6 +21,7 @@ export const AUDIT_ACTION_VALUES = [
   "article.archive",
   "article.rollback",
   "asset.upload",
+  "asset.delete",
   "import.run",
   "export.run",
   "health.run",
@@ -92,6 +93,10 @@ export const assetListQuerySchema = z.object({
   q: z.string().trim().max(120).optional(),
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(50).default(20)
+});
+
+export const assetDeleteQuerySchema = z.object({
+  assetId: z.string().trim().min(2).max(160)
 });
 
 export const auditListQuerySchema = z.object({

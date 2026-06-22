@@ -106,6 +106,8 @@ function activitySummary(event: AuditEvent): string {
       return "恢复版本";
     case "asset.upload":
       return "上传图片";
+    case "asset.delete":
+      return "删除图片";
     case "import.run":
       return "导入文章";
     case "export.run":

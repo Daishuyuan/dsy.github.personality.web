@@ -197,6 +197,11 @@ export function loadImageLibrary(params: { state: string; q?: string; page?: num
   return adminFetch<PaginatedResult<ImageLibraryItem>>(`/api/cms/assets?${search.toString()}`);
 }
 
+export function deleteImageAsset(assetId: string) {
+  const search = new URLSearchParams({ assetId });
+  return adminFetch<{ assetId: string; deleted: true }>(`/api/cms/assets?${search.toString()}`, { method: "DELETE" });
+}
+
 export function loadActivity(params: { action?: string; articleId?: string; assetId?: string; page?: number; pageSize?: number }) {
   const search = new URLSearchParams({
     page: String(params.page ?? 1),

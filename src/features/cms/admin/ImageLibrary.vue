@@ -27,7 +27,19 @@
           <div v-if="item.usedByArticles.length" class="article-refs">
             <small v-for="article in item.usedByArticles" :key="article.articleId">{{ article.title }}</small>
           </div>
-          <ElButton type="primary" :disabled="!currentArticleId" @click="$emit('insert', item)">插入当前文章</ElButton>
+          <div class="asset-actions">
+            <ElButton type="primary" :disabled="!currentArticleId" @click="$emit('insert', item)">插入当前文章</ElButton>
+            <ElButton
+              v-if="item.cleanupCandidate"
+              :icon="Delete"
+              type="danger"
+              plain
+              :loading="deletingAssetId === item.assetId"
+              @click="confirmDelete(item)"
+            >
+              删除
+            </ElButton>
+          </div>
         </div>
       </article>
     </div>
@@ -36,10 +48,10 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { Refresh } from "@element-plus/icons-vue";
-import { ElAlert, ElButton, ElEmpty, ElInput, ElSegmented, ElSkeleton, ElTag } from "element-plus";
+import { Delete, Refresh } from "@element-plus/icons-vue";
+import { ElAlert, ElButton, ElEmpty, ElInput, ElMessage, ElMessageBox, ElSegmented, ElSkeleton, ElTag } from "element-plus";
 import type { ImageLibraryItem } from "../types";
-import { loadImageLibrary } from "./adminClient";
+import { deleteImageAsset, loadImageLibrary } from "./adminClient";
 
 defineProps<{
   currentArticleId?: string;
@@ -52,6 +64,7 @@ defineEmits<{
 const state = ref("all");
 const q = ref("");
 const loading = ref(false);
+const deletingAssetId = ref("");
 const error = ref("");
 const items = ref<ImageLibraryItem[]>([]);
 const stateOptions = [
@@ -74,6 +87,30 @@ async function load() {
     error.value = err instanceof Error ? err.message : "图片列表加载失败。";
   } finally {
     loading.value = false;
+  }
+}
+
+async function confirmDelete(item: ImageLibraryItem) {
+  try {
+    await ElMessageBox.confirm(`确定删除「${item.originalName}」？删除后会从图片库和对象存储移除，不能撤销。`, "删除未使用图片", {
+      confirmButtonText: "直接删除",
+      cancelButtonText: "取消",
+      type: "warning",
+      confirmButtonClass: "el-button--danger"
+    });
+    deletingAssetId.value = item.assetId;
+    await deleteImageAsset(item.assetId);
+    items.value = items.value.filter((candidate) => candidate.assetId !== item.assetId);
+    ElMessage.success("图片已删除。");
+  } catch (err) {
+    if (err === "cancel" || err === "close") {
+      return;
+    }
+    ElMessage.error(err instanceof Error ? err.message : "图片删除失败。");
+  } finally {
+    if (deletingAssetId.value === item.assetId) {
+      deletingAssetId.value = "";
+    }
   }
 }
 
@@ -157,5 +194,11 @@ function formatBytes(value: number) {
 .asset-body span,
 .article-refs small {
   color: var(--muted);
+}
+
+.asset-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 </style>

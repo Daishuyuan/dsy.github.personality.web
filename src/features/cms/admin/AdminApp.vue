@@ -3,19 +3,25 @@
     <section v-if="!ready" class="cms-panel auth-panel">
       <div class="auth-copy">
         <span>SECURE CMS</span>
-        <h2>Owner Login</h2>
-        <p>{{ authHint }}</p>
+        <h2>{{ authInitialized ? "Owner Login" : "正在验证登录" }}</h2>
+        <p>{{ authInitialized ? authHint : "正在读取 Google 登录配置和账号状态。" }}</p>
       </div>
       <div class="auth-actions">
-        <ElButton v-if="authMode === 'oauth'" type="primary" :loading="authLoading" @click="signInGoogleAccount">
-          使用 Google 登录
-        </ElButton>
-        <template v-else-if="authMode === 'fallback'">
-          <ElInput v-model="tokenInput" type="password" show-password placeholder="本地 ADMIN_TOKEN" @keyup.enter="saveFallbackToken" />
-          <ElButton type="primary" @click="saveFallbackToken">进入</ElButton>
+        <div v-if="!authInitialized" class="auth-loading" role="status" aria-live="polite">
+          <ElIcon class="is-loading"><Loading /></ElIcon>
+          <span>正在准备登录入口</span>
+        </div>
+        <template v-else>
+          <ElButton v-if="authMode === 'oauth'" type="primary" :loading="authLoading" @click="signInGoogleAccount">
+            使用 Google 登录
+          </ElButton>
+          <template v-else-if="authMode === 'fallback'">
+            <ElInput v-model="tokenInput" type="password" show-password placeholder="本地 ADMIN_TOKEN" @keyup.enter="saveFallbackToken" />
+            <ElButton type="primary" @click="saveFallbackToken">进入</ElButton>
+          </template>
+          <ElAlert v-else title="未配置 Google 登录。" type="error" :closable="false" />
+          <p v-if="authMessage" class="auth-message">{{ authMessage }}</p>
         </template>
-        <ElAlert v-else title="未配置 Google 登录。" type="error" :closable="false" />
-        <p v-if="authMessage" class="auth-message">{{ authMessage }}</p>
       </div>
     </section>
 
@@ -88,8 +94,8 @@
 <script setup lang="ts">
 import "element-plus/dist/index.css";
 import { computed, onMounted, ref } from "vue";
-import { Plus, Refresh } from "@element-plus/icons-vue";
-import { ElAlert, ElButton, ElInput, ElMessage, ElSegmented } from "element-plus";
+import { Loading, Plus, Refresh } from "@element-plus/icons-vue";
+import { ElAlert, ElButton, ElIcon, ElInput, ElMessage, ElSegmented } from "element-plus";
 import type { Article, ImageLibraryItem } from "../types";
 import {
   AdminRequestError,
@@ -112,7 +118,8 @@ import VerificationPanel from "./VerificationPanel.vue";
 import VersionHistory from "./VersionHistory.vue";
 
 const ready = ref(false);
-const authLoading = ref(false);
+const authInitialized = ref(false);
+const authLoading = ref(true);
 const authMode = ref<"oauth" | "fallback" | "unconfigured">("unconfigured");
 const authEmail = ref("");
 const authMessage = ref("");
@@ -185,6 +192,7 @@ async function refreshAuth(loadWhenReady = false) {
     authEmail.value = "";
     authMessage.value = error instanceof Error ? error.message : "登录状态读取失败。";
   } finally {
+    authInitialized.value = true;
     authLoading.value = false;
   }
 }
@@ -377,6 +385,8 @@ function handleAdminError(error: unknown, fallback: string) {
 
 async function resetAuthState() {
   await signOutAdmin();
+  authInitialized.value = true;
+  authLoading.value = false;
   tokenInput.value = "";
   ready.value = false;
   authEmail.value = "";
@@ -450,6 +460,14 @@ async function resetAuthState() {
   justify-content: flex-end;
   gap: 0.75rem;
   min-width: min(460px, 100%);
+}
+
+.auth-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--muted);
+  font-weight: 700;
 }
 
 .auth-message {

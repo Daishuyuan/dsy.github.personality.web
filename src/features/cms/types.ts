@@ -183,6 +183,7 @@ export type AuditAction =
   | "article.archive"
   | "article.rollback"
   | "asset.upload"
+  | "asset.delete"
   | "import.run"
   | "export.run"
   | "health.run"

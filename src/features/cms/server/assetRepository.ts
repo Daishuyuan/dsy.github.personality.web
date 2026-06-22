@@ -26,6 +26,29 @@ export async function listImageAssets(): Promise<ImageAsset[]> {
   return [...getCmsMemoryStore().assets].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+export async function getImageAssetById(assetId: string): Promise<ImageAsset | null> {
+  const database = await getCmsDatabase();
+  if (database) {
+    return database.collection<ImageAsset>("image_assets").findOne({ assetId });
+  }
+  return getCmsMemoryStore().assets.find((asset) => asset.assetId === assetId) ?? null;
+}
+
+export async function deleteImageAssetRecord(assetId: string): Promise<boolean> {
+  const database = await getCmsDatabase();
+  if (database) {
+    const result = await database.collection<ImageAsset>("image_assets").deleteOne({ assetId });
+    return result.deletedCount === 1;
+  }
+  const store = getCmsMemoryStore();
+  const index = store.assets.findIndex((asset) => asset.assetId === assetId);
+  if (index < 0) {
+    return false;
+  }
+  store.assets.splice(index, 1);
+  return true;
+}
+
 export interface AssetListQuery {
   state: "all" | "used" | "unused" | "unavailable" | "recent";
   q?: string;

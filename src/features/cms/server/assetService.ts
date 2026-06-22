@@ -1,12 +1,13 @@
 import { randomUUID } from "node:crypto";
-import type { ImageAsset } from "../types.ts";
+import type { Article, ImageAsset } from "../types.ts";
+import { extractImageSources } from "../../content/markdown.ts";
 import { listOwnerArticles } from "./articleRepository.ts";
-import { listImageLibraryItems } from "./assetRepository.ts";
+import { deleteImageAssetRecord, getImageAssetById, listImageLibraryItems, saveImageAsset } from "./assetRepository.ts";
 import { MAX_IMAGE_BYTES, uploadSchema } from "../validation.ts";
 import { writeAuditEvent } from "./auditRepository.ts";
 import { getCmsEnv } from "./env.ts";
-import { saveImageAsset } from "./assetRepository.ts";
 import { getSupabaseStorageClient } from "./storageClient.ts";
+import { CmsApiError } from "./apiResponse.ts";
 
 export interface UploadImageInput {
   fileName: string;
@@ -68,6 +69,44 @@ export async function listImageLibrary(query: {
   return listImageLibraryItems(query, articles);
 }
 
+export async function deleteUnusedImageAsset(assetId: string, actor = "owner") {
+  const asset = await getImageAssetById(assetId);
+  if (!asset) {
+    throw new CmsApiError("NOT_FOUND", "图片不存在。");
+  }
+
+  const articles = await listAllOwnerArticles();
+  const referencingArticle = articles.find((article) => isAssetReferencedByArticle(asset, article));
+  if (referencingArticle) {
+    throw new CmsApiError("CONFLICT", "图片仍被文章引用，不能删除。");
+  }
+
+  if (asset.storageProvider === "supabase-storage") {
+    const client = getSupabaseStorageClient();
+    if (!client) {
+      throw new CmsApiError("STORAGE_FAILURE", "图片存储未配置，无法删除对象。");
+    }
+    const { error } = await client.storage.from(asset.bucket).remove([asset.objectPath]);
+    if (error) {
+      await writeAuditEvent({ action: "storage.failure", actor, assetId: asset.assetId, details: { message: error.message } });
+      throw new CmsApiError("STORAGE_FAILURE", "图片删除失败。");
+    }
+  }
+
+  await deleteImageAssetRecord(asset.assetId);
+  await writeAuditEvent({
+    action: "asset.delete",
+    actor,
+    assetId: asset.assetId,
+    details: {
+      originalName: asset.originalName,
+      storageProvider: asset.storageProvider,
+      objectPath: asset.objectPath
+    }
+  });
+  return { assetId: asset.assetId, deleted: true };
+}
+
 function createObjectPath(fileName: string): string {
   const now = new Date();
   const safeName = sanitizeFileName(fileName);
@@ -88,4 +127,15 @@ function sanitizeFileName(fileName: string): string {
 async function listAllOwnerArticles() {
   const firstPage = await listOwnerArticles({ page: 1, pageSize: 500 });
   return firstPage.items;
+}
+
+function isAssetReferencedByArticle(asset: ImageAsset, article: Article): boolean {
+  const htmlSources = Array.from(article.renderedHtml.matchAll(/<img[^>]+src=["']([^"']+)["']/gi)).map((match) => match[1].trim());
+  const sources = new Set([...extractImageSources(article.markdown), ...htmlSources]);
+  for (const source of sources) {
+    if (source === asset.publicUrl || source === asset.objectPath || source.endsWith(asset.objectPath)) {
+      return true;
+    }
+  }
+  return false;
 }
